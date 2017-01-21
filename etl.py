@@ -1,7 +1,8 @@
+import sys
 import csv
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from optparse import OptionParser
 from urllib import urlencode
 from urllib2 import urlopen
@@ -26,22 +27,12 @@ class StockHistory(IsDescription):
 def main(options):
     start = time.time()
 
-    start_download = time.time()
-    stock = list(reversed(download_quote(APPLE, options.start_date)))
-    bench = list(reversed(download_quote(NASDAQ, options.start_date)))
-    print 'download took %s' % (time.time() - start_download)
-
     h5file = open_file(options.db_path, mode = "w")
     group = h5file.create_group("/", 'history', 'Historical stock prices')
 
-    for symbol, serie in [(NASDAQ, bench), (APPLE, stock)]:
-        print 'creating table', symbol
-        table = h5file.create_table(group, norm_node_path(symbol), StockHistory, symbol)
-        rows = np.rec.array(serie)
-        # TODO: write are not thread safe. Need to serialize writes.
-        table.append(rows)
-        table.flush()
-        table.close()
+    # TODO: write are not thread safe. Need to serialize writes.
+    for symbol in [NASDAQ, APPLE]:
+        update_stock_history(h5file, group, symbol, options.start_date, options.end_date)
 
     table = get_table(h5file, '/history/' + APPLE)
     stock = table.read()
@@ -62,6 +53,27 @@ def main(options):
     h5file.close()
 
 
+def update_stock_history(h5file, group, symbol, start_date, end_date):
+    table = get_table(h5file, '/history/' + symbol)
+    if table is None:
+        table = h5file.create_table(group, norm_node_path(symbol), StockHistory, symbol)
+    else:
+        start_date = parse_date(table[table.nrows - 1]['date'])
+        start_date += timedelta(days=1)
+
+    print 'downloading %s from %s to %s' % (symbol, str(start_date)[:10], str(end_date)[:10])
+    start_download = time.time()
+    serie = list(reversed(download_quote(symbol, start_date, end_date)))
+    duration = time.time() - start_download
+    print 'download took %s (%d rows)' % (duration, len(serie))
+
+    if len(serie) > 0:
+        table.append(np.rec.array(serie))
+        table.flush()
+
+    table.close()
+
+
 def get_table(db, node_path):
     node_path = norm_node_path(node_path)
     return db.get_node(node_path) if node_path in db else None
@@ -71,9 +83,11 @@ def norm_node_path(node_path):
     return node_path.replace('^', 'INDEX_')
 
 
-def max_date(db, node_path):
-    tbl = get_table(db, node_path)
-    return tbl[tbl.nrows - 1]['date'] if tbl else None
+def parse_date(d):
+    try:
+        return datetime.strptime(d, '%Y-%m-%d')
+    except ValueError:
+        return None
 
 
 def download_quote(symbol, start, end=None):
@@ -147,17 +161,34 @@ def iter_rolling_window(stock, bench, size=30):
         yield date, stock_arr, bench_arr
 
 
-USAGE = (
+parser = OptionParser(usage=(
     'usage: %prog [options]\n\n'
-    'Download historical prices from Yahoo Finance and compute some financial '
-    'indicators like stock Beta.'
-)
+    'Download historical prices from Yahoo Finance and compute some financial\n'
+    'indicators like stock Beta. The first ETL run will create a PyTables database.\n'
+    'Subsequent runs will only download the historical data created between the previous\n'
+    'run and the current date date (or `end_date` if specified).'
+))
 
-parser = OptionParser(usage=USAGE)
-parser.add_option('-d', '--db-path', dest='db_path',
-                  default='data/citadel.h5', help='Path to the PyTables file')
-parser.add_option('-s', '--start-date', dest='start_date',
-                  default='2010-01-01', help='Download history as of this date (yyyy-mm-dd)')
+parser.add_option('--db-path',
+                  dest='db_path',
+                  default='data/citadel.h5',
+                  help='Path to the PyTables file')
+
+parser.add_option('--start-date',
+                  dest='start_date',
+                  default='2010-01-01',
+                  help='Download history as of this date (yyyy-mm-dd). It has no effect '
+                        'if the database already exists')
+
+parser.add_option('--end-date',
+                  dest='end_date',
+                  help='Download history up to this date (yyyy-mm-dd). Default to the current date')
+
+parser.add_option('--destroy',
+                  dest='destroy',
+                  action='store_true',
+                  help='Destroy the PyTables file which forces all the stocks to be downloaded since '
+                       'the `start_date`')
 
 
 if __name__ == '__main__':
@@ -166,9 +197,21 @@ if __name__ == '__main__':
     db_dir = os.path.dirname(options.db_path)
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
+    elif options.destroy:
+        os.remove(options.db_path)
 
-    try:
-        options.start_date = datetime.strptime(options.start_date, '%Y-%m-%d')
-        main(options)
-    except ValueError:
+    start_date = parse_date(options.start_date)
+    if start_date is None:
         parser.print_help()
+        sys.exit("Wrong parameter `start_end`: %s" % options.start_date)
+
+    end_date = None
+    if options.end_date:
+        end_date = parse_date(options.end_date)
+        if end_date is None:
+            parser.print_help()
+            sys.exit("Wrong parameter `end_date`: %s" % options.end_date)
+
+    options.start_date = start_date
+    options.end_date = end_date or datetime.now()
+    main(options)
