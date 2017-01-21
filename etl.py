@@ -1,4 +1,5 @@
 import csv
+import os
 import time
 from datetime import datetime
 from optparse import OptionParser
@@ -31,7 +32,6 @@ def main(options):
     bench = list(reversed(download_quote(NASDAQ, options.start_date)))
     print 'download took %s' % (time.time() - start_download)
 
-    # TODO: create data dir
     h5file = open_file(options.db_path, mode = "w")
     group = h5file.create_group("/", 'history', 'Historical stock prices')
 
@@ -163,6 +163,10 @@ parser.add_option('-s', '--start-date', dest='start_date',
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
+
+    db_dir = os.path.dirname(options.db_path)
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
 
     try:
         options.start_date = datetime.strptime(options.start_date, '%Y-%m-%d')
