@@ -1,5 +1,6 @@
 import csv
 import time
+from optparse import OptionParser
 from urllib2 import urlopen
 
 import numpy as np
@@ -20,7 +21,7 @@ class StockHistory(IsDescription):
     roi     = Float64Col(pos=5)
 
 
-def main():
+def main(options):
     start = time.time()
 
     start_download = time.time()
@@ -28,17 +29,15 @@ def main():
     bench = list(reversed(download_quote(NASDAQ)))
     print 'download took %s' % (time.time() - start_download)
 
-    # TODO: command line argument
     # TODO: create data dir
-    # TODO: write are not thread safe. Need to serialize writes.
-    dbpath = 'data/citadel.h5'
-    h5file = open_file(dbpath, mode = "w")
+    h5file = open_file(options.db_path, mode = "w")
     group = h5file.create_group("/", 'history', 'Historical stock prices')
 
     for symbol, serie in [(NASDAQ, bench), (APPLE, stock)]:
         print 'creating table', symbol
         table = h5file.create_table(group, norm_node_path(symbol), StockHistory, symbol)
         rows = np.rec.array(serie)
+        # TODO: write are not thread safe. Need to serialize writes.
         table.append(rows)
         table.flush()
         table.close()
@@ -71,6 +70,11 @@ def norm_node_path(node_path):
     return node_path.replace('^', 'INDEX_')
 
 
+def max_date(db, node_path):
+    tbl = get_table(db, node_path)
+    return tbl[tbl.nrows - 1]['date'] if tbl else None
+
+
 def download_quote(symbol):
     '''
     Returns the historical prices for the given symbol. Data are fetched from
@@ -81,6 +85,8 @@ def download_quote(symbol):
     # TODO: is this the right ROI formula?
     # TODO: handle missing data?
     # TODO: catch urllib2.URLError exception
+
+    # date are inclusive and months start at 0
     base_url = 'http://chart.finance.yahoo.com/table.csv?s={symbol}&a=1&b=1&c=2010&d=0&e=18&f=2017&g=d&ignore=.csv'
     response = urlopen(base_url.format(symbol=symbol))
     reader = csv.reader(response, delimiter=',')
@@ -123,5 +129,11 @@ def iter_rolling_window(stock, bench, size=30):
         bench_arr[i % size] = bench[i]['roi']
         yield date, stock_arr, bench_arr
 
+
+parser = OptionParser()
+parser.add_option("-d", "--db-path", dest="db_path",
+                  default='data/citadel.h5', help="Path to the PyTables file")
+
 if __name__ == '__main__':
-    main()
+    options, args = parser.parse_args()
+    main(options)
