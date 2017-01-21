@@ -1,6 +1,8 @@
 import csv
 import time
+from datetime import datetime
 from optparse import OptionParser
+from urllib import urlencode
 from urllib2 import urlopen
 
 import numpy as np
@@ -25,8 +27,8 @@ def main(options):
     start = time.time()
 
     start_download = time.time()
-    stock = list(reversed(download_quote(APPLE)))
-    bench = list(reversed(download_quote(NASDAQ)))
+    stock = list(reversed(download_quote(APPLE, options.start_date)))
+    bench = list(reversed(download_quote(NASDAQ, options.start_date)))
     print 'download took %s' % (time.time() - start_download)
 
     # TODO: create data dir
@@ -75,20 +77,34 @@ def max_date(db, node_path):
     return tbl[tbl.nrows - 1]['date'] if tbl else None
 
 
-def download_quote(symbol):
+def download_quote(symbol, start, end=None):
     '''
-    Returns the historical prices for the given symbol. Data are fetched from
-    the Yahoo Finance API.
-    '''
-    # TODO: use request pkg (http://stackoverflow.com/questions/35371043/use-python-requests-to-download-csv)?
-    # TODO: add parameters to specify the time range?
-    # TODO: is this the right ROI formula?
-    # TODO: handle missing data?
-    # TODO: catch urllib2.URLError exception
+    Download the historical prices from Yahoo Finance for the given symbol.
 
-    # date are inclusive and months start at 0
-    base_url = 'http://chart.finance.yahoo.com/table.csv?s={symbol}&a=1&b=1&c=2010&d=0&e=18&f=2017&g=d&ignore=.csv'
-    response = urlopen(base_url.format(symbol=symbol))
+    Arguments:
+        str symbol: stock symbol (like AAPL, GOOG...)
+        date start: start date of the history to retrieve
+        date end: end date of the history to retrieve (default to current date)
+
+    Return:
+        list of tuples (date, opening, closing, vol, roi)
+    '''
+    end = end or datetime.now()
+
+    url = 'http://chart.finance.yahoo.com/table.csv?' + urlencode((
+        ('s', symbol),
+        ('a', start.month - 1),
+        ('b', start.day),
+        ('c', start.year),
+        ('d', end.month - 1),
+        ('e', end.day),
+        ('f', end.year),
+        ('ignore','.csv'),
+    ))
+
+    # TODO: catch urllib2.URLError exception
+    # TODO: handle HTTP 5xx and 4xx
+    response = urlopen(url)
     reader = csv.reader(response, delimiter=',')
 
     # skip header
@@ -99,6 +115,7 @@ def download_quote(symbol):
         opening = float(opening)
         closing = float(closing)
         vol = float(vol)
+        # TODO: is this the right ROI formula?
         roi = closing / opening - 1
         output.append((date, opening, closing, vol, roi))
 
@@ -117,6 +134,7 @@ def compute_running_betas(stock, bench, size=30):
 
 
 def iter_rolling_window(stock, bench, size=30):
+    # TODO: handle missing data point in stock
     date = bench[size-1]['date']
     stock_arr = np.array([stock[i]['roi'] for i in xrange(size)])
     bench_arr = np.array([bench[i]['roi'] for i in xrange(size)])
@@ -130,10 +148,24 @@ def iter_rolling_window(stock, bench, size=30):
         yield date, stock_arr, bench_arr
 
 
-parser = OptionParser()
-parser.add_option("-d", "--db-path", dest="db_path",
-                  default='data/citadel.h5', help="Path to the PyTables file")
+USAGE = (
+    'usage: %prog [options]\n\n'
+    'Download historical prices from Yahoo Finance and compute some financial '
+    'indicators like stock Beta.'
+)
+
+parser = OptionParser(usage=USAGE)
+parser.add_option('-d', '--db-path', dest='db_path',
+                  default='data/citadel.h5', help='Path to the PyTables file')
+parser.add_option('-s', '--start-date', dest='start_date',
+                  default='2010-01-01', help='Download history as of this date (yyyy-mm-dd)')
+
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
-    main(options)
+
+    try:
+        options.start_date = datetime.strptime(options.start_date, '%Y-%m-%d')
+        main(options)
+    except ValueError:
+        parser.print_help()
