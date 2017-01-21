@@ -15,7 +15,6 @@ NASDAQ = '^IXIC'
 APPLE = 'AAPL'
 
 
-# TODO: use a dict instead
 class StockHistory(IsDescription):
     date    = StringCol(10, pos=1)
     opening = Float64Col(pos=2)
