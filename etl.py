@@ -70,7 +70,7 @@ def update_history(h5file, options):
             start = _get_symbol_max_date(h5file, symbol) or options.start_date
             symbols.append((symbol, start, options.end_date))
 
-        for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
+        for symbol, serie in yahoo.async_downloads(symbols, pool_size=options.nb_greenthreads):
             serie = list(reversed(serie))
             update_table(h5file, 'history', symbol, serie, StockHistory)
 
@@ -126,6 +126,12 @@ parser.add_option('--no-download',
                   dest='no_download',
                   action='store_true',
                   help='Do not download any data from Yahoo - just compute indicators')
+
+parser.add_option('--nb-greenthreads',
+                  dest='nb_greenthreads',
+                  type='int',
+                  default=10,
+                  help='Number of greenthreads used to download data')
 
 parser.add_option('--nb-proc',
                   dest='nb_proc',

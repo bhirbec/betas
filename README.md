@@ -35,6 +35,8 @@ Options:
                         to be downloaded since the `start_date`
   --no-download         Do not download any data from Yahoo - just compute
                         indicators
+  --nb-greenthreads=NB_GREENTHREADS
+                        Number of greenthreads used to download data
   --nb-proc=NB_PROC     Number of processors used to compute indicators
 ```
 
