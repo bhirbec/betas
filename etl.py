@@ -54,7 +54,7 @@ def main(options):
 
     h5file = open_file(options.db_path, mode=mode)
     update_history(h5file, options)
-    compute_indicators(h5file, NASDAQ)
+    compute_indicators(h5file, NASDAQ, options.nb_proc)
 
     print 'Total work took %s' % (time.time() - start_time)
     h5file.close()
@@ -126,6 +126,12 @@ parser.add_option('--no-download',
                   dest='no_download',
                   action='store_true',
                   help='Do not download any data from Yahoo - just compute indicators')
+
+parser.add_option('--nb-proc',
+                  dest='nb_proc',
+                  type='int',
+                  default=2,
+                  help='Number of processors used to compute indicators')
 
 
 if __name__ == '__main__':

@@ -1,4 +1,6 @@
 import time
+import traceback
+from multiprocessing import Pool
 
 import numpy as np
 from numpy import float64
@@ -7,12 +9,15 @@ from tables import IsDescription, StringCol, Float64Col
 from dblib import get_table, update_table
 
 
+WINDOW_SIZE = 30
+
+
 class StockBeta(IsDescription):
     date = StringCol(10, pos=1)
     beta = Float64Col(pos=2)
 
 
-def compute_indicators(h5file, bench_symbol, window_size=30):
+def compute_indicators(h5file, bench_symbol, nb_proc=2):
     if '/indicator' in h5file:
         h5file.remove_node('/indicator', recursive=True)
     h5file.create_group("/", 'indicator', 'Stock Betas over time')
@@ -25,31 +30,48 @@ def compute_indicators(h5file, bench_symbol, window_size=30):
     bench = table.read()
     table.close()
 
+    pool = Pool(processes=nb_proc)
+    for result in pool.imap_unordered(_work, _iter_series(h5file, bench)):
+        if result is None:
+            continue
+
+        symbol, betas = result
+        update_table(h5file, 'indicator', symbol, betas, StockBeta)
+
+
+def _iter_series(h5file, bench):
     for n in h5file.root.history:
-        symbol = n.name
-        stock = n.read()
+        yield n.name, n.read(), bench
         n.close()
 
-        if len(stock) > window_size:
-            start_time = time.time()
-            stock_serie, bench_serie = _join_series(stock, bench, 'date')
-            betas = _compute_running_betas(stock_serie, bench_serie, window_size)
-            update_table(h5file, 'indicator', symbol, betas, StockBeta)
-            print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
+
+def _work(args):
+    try:
+        return _running_betas(*args)
+    except Exception as e:
+       print traceback.format_exc()
+       return None
 
 
-def _compute_running_betas(stock, bench, window_size=30):
-    A = np.ones((window_size, 2), dtype=float64)
+def _running_betas(symbol, stock, bench):
+    start_time = time.time()
 
-    output = []
-    for date, stock_arr, bench_arr in _iter_window(stock, bench, window_size):
-        A[:,0] = bench_arr
+    if len(stock) <= WINDOW_SIZE:
+        return symbol, []
+
+    stock_serie, bench_serie = _join_series(stock, bench, 'date')
+    A = np.ones((WINDOW_SIZE, 2), dtype=float64)
+
+    betas = []
+    for date, stock_win, bench_win in _iter_window(stock_serie, bench_serie, WINDOW_SIZE):
+        A[:,0] = bench_win
         # try scipy.stats.linregress
-        result = np.linalg.lstsq(A, stock_arr)
+        result = np.linalg.lstsq(A, stock_win)
         beta, alpha = result[0]
-        output.append((date, beta))
+        betas.append((date, beta))
 
-    return output
+    print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
+    return symbol, betas
 
 
 def _join_series(s1, s2, key):
@@ -75,13 +97,13 @@ def _join_series(s1, s2, key):
 
 def _iter_window(stock, bench, size=30):
     date = bench[size-1]['date']
-    stock_arr = np.array([stock[i]['roi'] for i in xrange(size)])
-    bench_arr = np.array([bench[i]['roi'] for i in xrange(size)])
-    yield date, stock_arr, bench_arr
+    stock_win = np.array([stock[i]['roi'] for i in xrange(size)])
+    bench_win = np.array([bench[i]['roi'] for i in xrange(size)])
+    yield date, stock_win, bench_win
 
     n = len(stock)
     for i in xrange(size, n):
         date = bench[i]['date']
-        stock_arr[i % size] = stock[i]['roi']
-        bench_arr[i % size] = bench[i]['roi']
-        yield date, stock_arr, bench_arr
+        stock_win[i % size] = stock[i]['roi']
+        bench_win[i % size] = bench[i]['roi']
+        yield date, stock_win, bench_win
