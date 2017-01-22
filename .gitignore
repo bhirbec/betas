@@ -1,0 +1,6 @@
+.vagrant
+*.pyc
+*.sublime-*
+*.h5
+data/
+anaconda/
