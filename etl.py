@@ -110,7 +110,7 @@ parser.add_option('--start-date',
                   dest='start_date',
                   default='2010-01-01',
                   help='Download history as of this date (yyyy-mm-dd). It has no effect '
-                        'if the database already exists')
+                        'if the database already exists (default 2010-01-01)')
 
 parser.add_option('--end-date',
                   dest='end_date',

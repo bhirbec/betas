@@ -28,7 +28,8 @@ Options:
   --db-path=DB_PATH     Path to the PyTables file
   --start-date=START_DATE
                         Download history as of this date (yyyy-mm-dd). It has
-                        no effect if the database already exists
+                        no effect if the database already exists (default
+                        2010-01-01)
   --end-date=END_DATE   Download history up to this date (yyyy-mm-dd). Default
                         to the current date
   --destroy             Destroy the PyTables file which forces all the stocks
