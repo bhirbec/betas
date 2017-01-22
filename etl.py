@@ -134,7 +134,7 @@ if __name__ == '__main__':
     db_dir = os.path.dirname(options.db_path)
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
-    elif os.path.exists(db_path) and options.destroy:
+    elif os.path.exists(options.db_path) and options.destroy:
         os.remove(options.db_path)
 
     start_date = parse_date(options.start_date)
