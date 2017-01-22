@@ -36,7 +36,7 @@ SYMBOLS = [
     'ACBI', 'ACFC', 'ABY', 'ATLC', 'AAWW', 'AFH', 'TEAM', 'ATNI', 'ATOM', 'ATOS', 'ATRC', 'ATRI', 'ATTU', 'LIFE',
     'AUBN', 'BOLD', 'AUDC', 'AUPH', 'EARS', 'ABTL', 'ADSK', 'ADP', 'AVDL', 'AVEO', 'AVXS', 'AVNW', 'AVID', 'AVGR',
     'AVIR', 'CAR', 'AHPA', 'AHPAU', 'AHPAW', 'AWRE', 'AXAR', 'AXARU', 'AXARW', 'ACLS', 'AXGN', 'AXSM', 'AXTI', 'AZRX',
-    'BCOM', 'RILY', 'RILYL', 'BOSC', 'BEAV', 'BIDU', 'BCPC', 'BWINA', 'AAPL', NASDAQ
+    'BCOM', 'RILY', 'RILYL', 'BOSC', 'BEAV', 'BIDU', 'BCPC', 'BWINA', NASDAQ
 ]
 
 class StockHistory(IsDescription):
@@ -45,6 +45,11 @@ class StockHistory(IsDescription):
     closing = Float64Col(pos=3)
     volume  = Float64Col(pos=4)
     roi     = Float64Col(pos=5)
+
+
+class StockBeta(IsDescription):
+    date = StringCol(10, pos=1)
+    beta = Float64Col(pos=2)
 
 
 def main(options):
@@ -61,11 +66,11 @@ def main(options):
 
 def _update_history(h5file, options):
     if '/history' not in h5file:
-        group = h5file.create_group("/", 'history', 'Historical stock prices')
+        h5file.create_group("/", 'history', 'Historical stock prices')
 
     if not options.no_download:
         symbols = []
-        for symbol, start in _iter_symbols(h5file, SYMBOLS[-10:]):
+        for symbol, start in _iter_symbols(h5file, SYMBOLS):
             symbols.append((symbol, start, options.end_date))
 
         for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
@@ -115,36 +120,70 @@ def parse_date(d):
         return None
 
 
-def _compute_indicators(h5file):
-    table = get_table(h5file, '/history/AAPL')
-    stock = table.read()
-    table.close()
+def _compute_indicators(h5file, window_size=30):
+    if '/indicator' in h5file:
+        h5file.remove_node('/indicator', recursive=True)
+    h5file.create_group("/", 'indicator', 'Stock Betas over time')
 
     table = get_table(h5file, '/history/' + NASDAQ)
     bench = table.read()
     table.close()
 
-    # These two series are identical in terms of time frame, number of days! This
-    # assumption may not hold with other stocks.
-    start_time = time.time()
-    compute_running_betas(stock, bench)
-    print 'beta computation took %s' % (time.time() - start_time)
-    table.close()
+    for n in h5file.root.history:
+        symbol = n.name
+        stock = n.read()
+        n.close()
+
+        if len(stock) > window_size:
+            # These two series are identical in terms of time frame, number of days! This
+            # assumption may not hold with other stocks.
+            start_time = time.time()
+
+            stock_serie, bench_serie = _join_series(stock, bench, 'date')
+            betas = _compute_running_betas(stock_serie, bench_serie, window_size)
+
+            table = h5file.create_table('/indicator', norm_node_path(symbol), StockBeta)
+            table.append(np.rec.array(betas))
+            table.close()
+            print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
 
 
-def compute_running_betas(stock, bench, size=30):
-    A = np.ones((size, 2), dtype=float64)
+def _compute_running_betas(stock, bench, window_size=30):
+    A = np.ones((window_size, 2), dtype=float64)
 
-    for date, stock_arr, bench_arr in iter_rolling_window(stock, bench, size=30):
+    output = []
+    for date, stock_arr, bench_arr in _iter_window(stock, bench, window_size):
         A[:,0] = bench_arr
         # try scipy.stats.linregress
         result = np.linalg.lstsq(A, stock_arr)
         beta, alpha = result[0]
-        print date, beta
+        output.append((date, beta))
+
+    return output
 
 
-def iter_rolling_window(stock, bench, size=30):
-    # TODO: handle missing data point in stock
+def _join_series(s1, s2, key):
+    out1, out2 = [], []
+    s1, s2 = iter(s1), iter(s2)
+    row1 = next(s1, None)
+    row2 = next(s2, None)
+
+    while row1 and row2:
+        key1, key2 = row1[key], row2[key]
+        if key1 > key2:
+            row2 = next(s2, None)
+        elif key1 < key2:
+            row1 = next(s1, None)
+        else:
+            out1.append(row1)
+            out2.append(row2)
+            row2 = next(s2, None)
+            row1 = next(s1, None)
+
+    return out1, out2
+
+
+def _iter_window(stock, bench, size=30):
     date = bench[size-1]['date']
     stock_arr = np.array([stock[i]['roi'] for i in xrange(size)])
     bench_arr = np.array([bench[i]['roi'] for i in xrange(size)])

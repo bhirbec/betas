@@ -38,25 +38,36 @@ def test_download_delta():
     assert result == expected
 
 
-@with_setup(teardown=rm_db)
-def test_update_stock_history():
-    h5 = open_file(TEST_DB, mode='w')
-    group = h5.create_group("/", 'history', 'Historical stock prices')
+# @with_setup(teardown=rm_db)
+# def test_update_stock_history():
+#     h5 = open_file(TEST_DB, mode='w')
+#     group = h5.create_group("/", 'history', 'Historical stock prices')
 
-    start = datetime.date(day=17, month=01, year=2017)
-    end = datetime.date(day=18, month=01, year=2017)
-    etl.update_stock_history(h5, group, 'AAPL', start, end)
-    end = datetime.date(day=19, month=01, year=2017)
-    etl.update_stock_history(h5, group, 'AAPL', None, end)
+#     start = datetime.date(day=17, month=01, year=2017)
+#     end = datetime.date(day=18, month=01, year=2017)
+#     etl.update_stock_history(h5, group, 'AAPL', start, end)
+#     end = datetime.date(day=19, month=01, year=2017)
+#     etl.update_stock_history(h5, group, 'AAPL', None, end)
 
-    expected = ['2017-01-17', '2017-01-18', '2017-01-19']
-    assert list(h5.root.history.AAPL.col('date')) == expected
+#     expected = ['2017-01-17', '2017-01-18', '2017-01-19']
+#     assert list(h5.root.history.AAPL.col('date')) == expected
+
+
+def test_join_series():
+    s1 = [dict(id=1), dict(id=2), dict(id=3), dict(id=4)]
+    s2 = [dict(id=1), dict(id=4)]
+    s1, s2 = etl._join_series(iter(s1), iter(s2), 'id')
+    assert len(s1) == len(s2)
+    assert all(r1['id'] == r2['id'] for r1, r2 in zip(s1, s2))
+
+    s1, s2 = etl._join_series(iter([]), iter(s2), 'id')
+    assert len(s2) == 0
 
 
 def test_rolling_window():
     stock = [dict(date=i, roi=v) for i, v in enumerate(range(10, 20))]
     bench = [dict(date=i, roi=v) for i, v in enumerate(range(0, 10))]
-    result = [(d, list(s), list(b)) for d, s, b in etl.iter_rolling_window(stock, bench, size=3)]
+    result = [(d, list(s), list(b)) for d, s, b in etl._iter_window(stock, bench, size=3)]
 
     assert result == [
         (2, [10, 11, 12], [0, 1, 2]),
