@@ -16,12 +16,12 @@ Some options are available as command line arguments:
 
 ```
 $ python etl.py -h
-Usage: etl.py [options]
+Usage: python etl.py [options]
 
 Download historical prices from Yahoo Finance and compute some financial
 indicators like stock Beta. The first ETL run will create a PyTables database.
-Subsequent runs will only download the historical data created between the previous
-run and the current date date (or `end_date` if specified).
+Subsequent runs will only download the historical data generated between the previous
+run and the current date (or `end_date` if specified).
 
 Options:
   -h, --help            show this help message and exit
@@ -32,10 +32,14 @@ Options:
   --end-date=END_DATE   Download history up to this date (yyyy-mm-dd). Default
                         to the current date
   --destroy             Destroy the PyTables file which forces all the stocks
-                        to be downloaded since the `start_date````
+                        to be downloaded since the `start_date`
+  --no-download         Do not download any data from Yahoo - just compute
+                        indicators
+  --nb-proc=NB_PROC     Number of processors used to compute indicators
+```
 
 # Running the Unit Tests
 
 Run the test with the following command:
 
-`$ nosetests etl_test.py`
+`$ nosetests tests.py`

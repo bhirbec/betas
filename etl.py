@@ -94,7 +94,7 @@ def parse_date(d):
 
 
 parser = OptionParser(usage=(
-    'usage: %prog [options]\n\n'
+    'usage: python %prog [options]\n\n'
     'Download historical prices from Yahoo Finance and compute some financial\n'
     'indicators like stock Beta. The first ETL run will create a PyTables database.\n'
     'Subsequent runs will only download the historical data generated between the previous\n'
