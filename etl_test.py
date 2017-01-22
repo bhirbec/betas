@@ -1,9 +1,11 @@
 import os
 import datetime
-import etl
 
 from nose import with_setup
 from tables import open_file
+
+import etl
+import yahoo
 
 
 TEST_DB = 'test.h5'
@@ -17,7 +19,7 @@ def rm_db():
 def test_download_quote():
     start = datetime.date(day=01, month=01, year=2017)
     end = datetime.date(day=10, month=01, year=2017)
-    result = [r[0] for r in etl.download_quote('AAPL', start, end)]
+    result = [r[0] for r in yahoo.download('AAPL', start, end)]
     expected = ['2017-01-10', '2017-01-09', '2017-01-06', '2017-01-05', '2017-01-04', '2017-01-03']
     assert result == expected
 
@@ -25,11 +27,11 @@ def test_download_quote():
 def test_download_delta():
     start = datetime.date(day=01, month=01, year=2017)
     end = datetime.date(day=6, month=01, year=2017)
-    result = [r[0] for r in etl.download_quote('^IXIC', start, end)]
+    result = [r[0] for r in yahoo.download('^IXIC', start, end)]
 
     start = datetime.date(day=7, month=01, year=2017)
     end = datetime.date(day=10, month=01, year=2017)
-    result += [r[0] for r in etl.download_quote('^IXIC', start, end)]
+    result += [r[0] for r in yahoo.download('^IXIC', start, end)]
 
     result = sorted(result, reverse=True)
     expected = ['2017-01-10', '2017-01-09', '2017-01-06', '2017-01-05', '2017-01-04', '2017-01-03']

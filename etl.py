@@ -1,20 +1,43 @@
 import sys
-import csv
 import os
 import time
 from datetime import datetime, timedelta
 from optparse import OptionParser
-from urllib import urlencode
-from urllib2 import urlopen
 
 import numpy as np
 from numpy import float64
 from tables import open_file, IsDescription, StringCol, Float64Col
 
 
-NASDAQ = '^IXIC'
-APPLE = 'AAPL'
+import yahoo
 
+
+NASDAQ = '^IXIC'
+
+SYMBOLS = [
+    'PIH', 'FLWS', 'FCCY', 'SRCE', 'VNET', 'TWOU', 'JOBS', 'CAFD', 'EGHT', 'AVHI', 'SHLM', 'AAON', 'ABAX', 'ABEO',
+    'ABEOW', 'ABIL', 'ABMD', 'AXAS', 'ACIU', 'ACIA', 'ACTG', 'ACHC', 'ACAD', 'ACST', 'AXDX', 'XLRN', 'ANCX', 'ARAY',
+    'ACRX', 'ACET', 'AKAO', 'ACHN', 'ACIW', 'ACRS', 'ACNB', 'ACOR', 'ATVI', 'ACTA', 'ACUR', 'ACXM', 'ADMS', 'ADMP',
+    'ADAP', 'ADUS', 'AEY', 'IOTS', 'ADMA', 'ADBE', 'ADTN', 'ADRO', 'AAAP', 'ADES', 'AEIS', 'AMD', 'ADXS', 'ADXSW',
+    'ADVM', 'MAUI', 'AEGN', 'AGLE', 'AEHR', 'AMTX', 'AEPI', 'AERI', 'AVAV', 'AEZS', 'AEMD', 'GNMX', 'AFMD', 'AGEN',
+    'AGRX', 'AGYS', 'AGIO', 'AGNC', 'AGNCB', 'AGNCP', 'AGFS', 'AGFSW', 'AIMT', 'AIRM', 'AIRT', 'ATSG', 'AIRG', 'AMCN',
+    'AKAM', 'AKTX', 'AKBA', 'AKER', 'AKRX', 'ALRM', 'ALSK', 'AMRI', 'ALBO', 'ABDC', 'ADHD', 'ALDR', 'ALDX', 'ALXN',
+    'ALCO', 'ALGN', 'ALIM', 'ALJJ', 'ALKS', 'ABTX', 'ALGT', 'AIQ', 'AHGP', 'AMMA', 'ARLP', 'AHPI', 'AMOT', 'ALQA',
+    'ALLT', 'MDRX', 'AFAM', 'ALNY', 'AOSL', 'GOOG', 'GOOGL', 'SMCP', 'ATEC', 'SWIN', 'ASPS', 'AIMC', 'AMAG', 'AMRN',
+    'AMRK', 'AYA', 'AMZN', 'AMBC', 'AMBCW', 'AMBA', 'AMCX', 'DOX', 'AMDA', 'AMED', 'UHAL', 'ATAX', 'AMOV', 'AAL',
+    'ACSF', 'AETI', 'AMNB', 'ANAT', 'AOBC', 'APEI', 'ARII', 'AMRB', 'AMSWA', 'AMSC', 'AMWD', 'CRMT', 'ABCB', 'AMSF',
+    'ASRV', 'ASRVP', 'ATLO', 'AMGN', 'FOLD', 'AMKR', 'AMPH', 'IBUY', 'ASYS', 'AFSI', 'AMRS', 'ADI', 'ALOG', 'AVXL',
+    'ANCB', 'ANDA', 'ANDAR', 'ANDAU', 'ANDAW', 'ANGI', 'ANGO', 'ANIP', 'ANIK', 'ANSS', 'ATRS', 'ANTH', 'ABAC', 'APOG',
+    'APOL', 'APEN', 'AINV', 'APPF', 'AAPL', 'ARCI', 'APDN', 'APDNW', 'AGTC', 'AMAT', 'AMCC', 'AAOI', 'AREX', 'APTI',
+    'APRI', 'APVO', 'APTO', 'AQMS', 'AQB', 'AQXP', 'ARDM', 'ARLZ', 'PETX', 'ABUS', 'ARCW', 'ABIO', 'RKDA', 'ARCB',
+    'ACGL', 'ACGLP', 'APLP', 'ACAT', 'ARDX', 'ARNA', 'ARCC', 'AGII', 'AGIIL', 'ARGS', 'ARIS', 'ARIA', 'ARKR', 'ARTX',
+    'ARQL', 'ARRY', 'ARRS', 'DWAT', 'AROW', 'ARWR', 'ARTNA', 'ARTW', 'ASBB', 'ASNA', 'ASND', 'ASCMA', 'APWC', 'ASML',
+    'AZPN', 'ASMB', 'ASFI', 'ASTE', 'ATRO', 'ALOT', 'ASTC', 'ASUR', 'ATAI', 'ATRA', 'ATHN', 'ATHX', 'AAPC', 'AAME',
+    'ACBI', 'ACFC', 'ABY', 'ATLC', 'AAWW', 'AFH', 'TEAM', 'ATNI', 'ATOM', 'ATOS', 'ATRC', 'ATRI', 'ATTU', 'LIFE',
+    'AUBN', 'BOLD', 'AUDC', 'AUPH', 'EARS', 'ABTL', 'ADSK', 'ADP', 'AVDL', 'AVEO', 'AVXS', 'AVNW', 'AVID', 'AVGR',
+    'AVIR', 'CAR', 'AHPA', 'AHPAU', 'AHPAW', 'AWRE', 'AXAR', 'AXARU', 'AXARW', 'ACLS', 'AXGN', 'AXSM', 'AXTI', 'AZRX',
+    'BCOM', 'RILY', 'RILYL', 'BOSC', 'BEAV', 'BIDU', 'BCPC', 'BWINA', 'AAPL', NASDAQ
+]
 
 class StockHistory(IsDescription):
     date    = StringCol(10, pos=1)
@@ -27,14 +50,18 @@ class StockHistory(IsDescription):
 def main(options):
     start = time.time()
 
-    h5file = open_file(options.db_path, mode = "w")
+    h5file = open_file(options.db_path, mode="w")
     group = h5file.create_group("/", 'history', 'Historical stock prices')
 
-    # TODO: write are not thread safe. Need to serialize writes.
-    for symbol in [NASDAQ, APPLE]:
-        update_stock_history(h5file, group, symbol, options.start_date, options.end_date)
+    if not options.no_download:
+        symbols = []
+        for symbol, start in _iter_symbols(h5file, SYMBOLS):
+            symbols.append((symbol, start, options.end_date))
 
-    table = get_table(h5file, '/history/' + APPLE)
+        for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
+            _update_history_table(h5file, group, symbol, serie)
+
+    table = get_table(h5file, '/history/AAPL')
     stock = table.read()
     table.close()
 
@@ -53,21 +80,27 @@ def main(options):
     h5file.close()
 
 
-def update_stock_history(h5file, group, symbol, start_date, end_date):
+def _iter_symbols(h5file, symbols):
+    for symbol in symbols:
+        table = get_table(h5file, '/history/' + symbol)
+        if table is None or table.nrows == 0:
+            start_date = options.start_date
+        else:
+            start_date = parse_date(table[table.nrows - 1]['date'])
+            start_date += timedelta(days=1)
+            table.close()
+
+        yield symbol, start_date
+
+
+def _update_history_table(h5file, group, symbol, serie):
+    print 'Updating table for %s (%d values)' % (symbol, len(serie))
     table = get_table(h5file, '/history/' + symbol)
     if table is None:
         table = h5file.create_table(group, norm_node_path(symbol), StockHistory, symbol)
-    else:
-        start_date = parse_date(table[table.nrows - 1]['date'])
-        start_date += timedelta(days=1)
-
-    print 'downloading %s from %s to %s' % (symbol, str(start_date)[:10], str(end_date)[:10])
-    start_download = time.time()
-    serie = list(reversed(download_quote(symbol, start_date, end_date)))
-    duration = time.time() - start_download
-    print 'download took %s (%d rows)' % (duration, len(serie))
 
     if len(serie) > 0:
+        serie = list(reversed(serie))
         table.append(np.rec.array(serie))
         table.flush()
 
@@ -88,51 +121,6 @@ def parse_date(d):
         return datetime.strptime(d, '%Y-%m-%d')
     except ValueError:
         return None
-
-
-def download_quote(symbol, start, end=None):
-    '''
-    Download the historical prices from Yahoo Finance for the given symbol.
-
-    Arguments:
-        str symbol: stock symbol (like AAPL, GOOG...)
-        date start: start date of the history to retrieve
-        date end: end date of the history to retrieve (default to current date)
-
-    Return:
-        list of tuples (date, opening, closing, vol, roi)
-    '''
-    end = end or datetime.now()
-
-    url = 'http://chart.finance.yahoo.com/table.csv?' + urlencode((
-        ('s', symbol),
-        ('a', start.month - 1),
-        ('b', start.day),
-        ('c', start.year),
-        ('d', end.month - 1),
-        ('e', end.day),
-        ('f', end.year),
-        ('ignore','.csv'),
-    ))
-
-    # TODO: catch urllib2.URLError exception
-    # TODO: handle HTTP 5xx and 4xx
-    response = urlopen(url)
-    reader = csv.reader(response, delimiter=',')
-
-    # skip header
-    reader.next()
-    output = []
-
-    for date, opening, high, low, closing, vol, adj_closing in reader:
-        opening = float(opening)
-        closing = float(closing)
-        vol = float(vol)
-        # TODO: is this the right ROI formula?
-        roi = closing / opening - 1
-        output.append((date, opening, closing, vol, roi))
-
-    return output
 
 
 def compute_running_betas(stock, bench, size=30):
@@ -165,8 +153,8 @@ parser = OptionParser(usage=(
     'usage: %prog [options]\n\n'
     'Download historical prices from Yahoo Finance and compute some financial\n'
     'indicators like stock Beta. The first ETL run will create a PyTables database.\n'
-    'Subsequent runs will only download the historical data created between the previous\n'
-    'run and the current date date (or `end_date` if specified).'
+    'Subsequent runs will only download the historical data generated between the previous\n'
+    'run and the current date (or `end_date` if specified).'
 ))
 
 parser.add_option('--db-path',
@@ -189,6 +177,11 @@ parser.add_option('--destroy',
                   action='store_true',
                   help='Destroy the PyTables file which forces all the stocks to be downloaded since '
                        'the `start_date`')
+
+parser.add_option('--no-download',
+                  dest='no_download',
+                  action='store_true',
+                  help='Do not download any data from Yahoo - just compute indicators')
 
 
 if __name__ == '__main__':
