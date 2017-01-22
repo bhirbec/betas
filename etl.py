@@ -70,24 +70,23 @@ def _update_history(h5file, options):
 
     if not options.no_download:
         symbols = []
-        for symbol, start in _iter_symbols(h5file, SYMBOLS):
+        for symbol in SYMBOLS:
+            start = _get_symbol_max_date(h5file, symbol) or options.start_date
             symbols.append((symbol, start, options.end_date))
 
         for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
             _update_history_table(h5file, '/history', symbol, serie)
 
 
-def _iter_symbols(h5file, symbols):
-    for symbol in symbols:
-        table = get_table(h5file, '/history/' + symbol)
-        if table is None or table.nrows == 0:
-            start_date = options.start_date
-        else:
-            start_date = parse_date(table[table.nrows - 1]['date'])
-            start_date += timedelta(days=1)
-            table.close()
+def _get_symbol_max_date(h5file, symbol):
+    table = get_table(h5file, '/history/' + symbol)
+    if table is None or table.nrows == 0:
+        return None
 
-        yield symbol, start_date
+    start_date = parse_date(table[table.nrows - 1]['date'])
+    start_date += timedelta(days=1)
+    table.close()
+    return start_date
 
 
 def _update_history_table(h5file, group, symbol, serie):
