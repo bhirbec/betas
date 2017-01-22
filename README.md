@@ -39,6 +39,7 @@ Options:
   --nb-greenthreads=NB_GREENTHREADS
                         Number of greenthreads used to download data
   --nb-proc=NB_PROC     Number of processors used to compute indicators
+                        (default to multiprocessing.cpu_count())
 ```
 
 # Running the Unit Tests

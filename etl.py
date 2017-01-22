@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime
 from optparse import OptionParser
+from multiprocessing import cpu_count
 
 from tables import open_file
 
@@ -54,8 +55,9 @@ parser.add_option('--nb-greenthreads',
 parser.add_option('--nb-proc',
                   dest='nb_proc',
                   type='int',
-                  default=2,
-                  help='Number of processors used to compute indicators')
+                  default=None,
+                  help='Number of processors used to compute indicators (default to '
+                       'multiprocessing.cpu_count())')
 
 
 def main(options):
@@ -95,4 +97,5 @@ if __name__ == '__main__':
 
     options.start_date = start_date
     options.end_date = end_date or datetime.now()
+    options.nb_proc = options.nb_proc or cpu_count()
     main(options)
