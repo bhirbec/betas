@@ -66,7 +66,7 @@ def update_history(h5file, options):
 
     if not options.no_download:
         symbols = []
-        for symbol in SYMBOLS[-10:]:
+        for symbol in SYMBOLS:
             start = _get_symbol_max_date(h5file, symbol) or options.start_date
             symbols.append((symbol, start, options.end_date))
 
