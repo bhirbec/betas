@@ -125,6 +125,10 @@ def _compute_indicators(h5file, window_size=30):
     h5file.create_group("/", 'indicator', 'Stock Betas over time')
 
     table = get_table(h5file, '/history/' + NASDAQ)
+    if table is None:
+        print 'Error: benchmark table is empty'
+        return
+
     bench = table.read()
     table.close()
 

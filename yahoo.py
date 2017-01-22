@@ -50,7 +50,7 @@ def _async_download(args):
     print 'Downloading %s' % symbol
     try:
         return symbol, gurllib2.urlopen(url)
-    except (gurllib2.HTTPError, urllib2.URLError) as e:
+    except Exception as e:
         print 'Error: cannot download symbol %s - %s' % (symbol, e)
         return symbol, None
 
