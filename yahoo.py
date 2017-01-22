@@ -7,10 +7,6 @@ from eventlet import GreenPool
 from eventlet.green import urllib2 as gurllib2
 
 
-# TODO: catch urllib2.URLError exception
-# TODO: handle HTTP 5xx and 4xx?
-
-
 def async_downloads(symbols, pool_size=25):
     '''
     Asynchronously download the historical prices from Yahoo Finance for the given
@@ -54,8 +50,8 @@ def _async_download(args):
     print 'Downloading %s' % symbol
     try:
         return symbol, gurllib2.urlopen(url)
-    except gurllib2.HTTPError as e:
-        print 'Error: cannot download for symbol %s - %s' % (symbol, e)
+    except (gurllib2.HTTPError, urllib2.URLError) as e:
+        print 'Error: cannot download symbol %s - %s' % (symbol, e)
         return symbol, None
 
 

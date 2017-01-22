@@ -49,10 +49,17 @@ class StockHistory(IsDescription):
 
 def main(options):
     start_time = time.time()
-
     mode = 'a' if os.path.exists(options.db_path) else 'w'
-    h5file = open_file(options.db_path, mode=mode)
 
+    h5file = open_file(options.db_path, mode=mode)
+    _update_history(h5file, options)
+    _compute_indicators(h5file)
+
+    print 'Total work took %s' % (time.time() - start_time)
+    h5file.close()
+
+
+def _update_history(h5file, options):
     if '/history' not in h5file:
         group = h5file.create_group("/", 'history', 'Historical stock prices')
 
@@ -63,24 +70,6 @@ def main(options):
 
         for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
             _update_history_table(h5file, '/history', symbol, serie)
-
-    table = get_table(h5file, '/history/AAPL')
-    stock = table.read()
-    table.close()
-
-    table = get_table(h5file, '/history/' + NASDAQ)
-    bench = table.read()
-    table.close()
-
-    # These two series are identical in terms of time frame, number of days! This
-    # assumption may not hold with other stocks.
-    start_beta = time.time()
-    compute_running_betas(stock, bench)
-    print 'beta computation took %s' % (time.time() - start_beta)
-    print 'Total work took %s' % (time.time() - start_time)
-
-    table.close()
-    h5file.close()
 
 
 def _iter_symbols(h5file, symbols):
@@ -124,6 +113,23 @@ def parse_date(d):
         return datetime.strptime(d, '%Y-%m-%d')
     except ValueError:
         return None
+
+
+def _compute_indicators(h5file):
+    table = get_table(h5file, '/history/AAPL')
+    stock = table.read()
+    table.close()
+
+    table = get_table(h5file, '/history/' + NASDAQ)
+    bench = table.read()
+    table.close()
+
+    # These two series are identical in terms of time frame, number of days! This
+    # assumption may not hold with other stocks.
+    start_time = time.time()
+    compute_running_betas(stock, bench)
+    print 'beta computation took %s' % (time.time() - start_time)
+    table.close()
 
 
 def compute_running_betas(stock, bench, size=30):
