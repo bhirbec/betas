@@ -70,12 +70,13 @@ def _update_history(h5file, options):
 
     if not options.no_download:
         symbols = []
-        for symbol in SYMBOLS:
+        for symbol in SYMBOLS[-10:]:
             start = _get_symbol_max_date(h5file, symbol) or options.start_date
             symbols.append((symbol, start, options.end_date))
 
         for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
-            _update_history_table(h5file, '/history', symbol, serie)
+            serie = list(reversed(serie))
+            _update_table(h5file, 'history', symbol, serie, StockHistory)
 
 
 def _get_symbol_max_date(h5file, symbol):
@@ -89,18 +90,18 @@ def _get_symbol_max_date(h5file, symbol):
     return start_date
 
 
-def _update_history_table(h5file, group, symbol, serie):
-    print 'Updating table for %s (%d values)' % (symbol, len(serie))
-    table = get_table(h5file, '/history/' + symbol)
-    if table is None:
-        table = h5file.create_table(group, norm_node_path(symbol), StockHistory, symbol)
+def _update_table(h5file, group, table, serie, cols):
+    print 'Updating table /%s/%s (%d values)' % (group, table, len(serie))
+    if len(serie) == 0:
+        return
 
-    if len(serie) > 0:
-        serie = list(reversed(serie))
-        table.append(np.rec.array(serie))
-        table.flush()
+    tbl = get_table(h5file, '/{0}/{1}'.format(group, table))
+    if tbl is None:
+        tbl = h5file.create_table('/' + group, norm_node_path(table), cols)
 
-    table.close()
+    tbl.append(np.rec.array(serie))
+    tbl.flush()
+    tbl.close()
 
 
 def get_table(db, node_path):
@@ -138,16 +139,10 @@ def _compute_indicators(h5file, window_size=30):
         n.close()
 
         if len(stock) > window_size:
-            # These two series are identical in terms of time frame, number of days! This
-            # assumption may not hold with other stocks.
             start_time = time.time()
-
             stock_serie, bench_serie = _join_series(stock, bench, 'date')
             betas = _compute_running_betas(stock_serie, bench_serie, window_size)
-
-            table = h5file.create_table('/indicator', norm_node_path(symbol), StockBeta)
-            table.append(np.rec.array(betas))
-            table.close()
+            _update_table(h5file, 'indicator', symbol, betas, StockBeta)
             print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
 
 
