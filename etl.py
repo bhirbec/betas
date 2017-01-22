@@ -48,18 +48,21 @@ class StockHistory(IsDescription):
 
 
 def main(options):
-    start = time.time()
+    start_time = time.time()
 
-    h5file = open_file(options.db_path, mode="w")
-    group = h5file.create_group("/", 'history', 'Historical stock prices')
+    mode = 'a' if os.path.exists(options.db_path) else 'w'
+    h5file = open_file(options.db_path, mode=mode)
+
+    if '/history' not in h5file:
+        group = h5file.create_group("/", 'history', 'Historical stock prices')
 
     if not options.no_download:
         symbols = []
-        for symbol, start in _iter_symbols(h5file, SYMBOLS):
+        for symbol, start in _iter_symbols(h5file, SYMBOLS[-10:]):
             symbols.append((symbol, start, options.end_date))
 
         for symbol, serie in yahoo.async_downloads(symbols, pool_size=10):
-            _update_history_table(h5file, group, symbol, serie)
+            _update_history_table(h5file, '/history', symbol, serie)
 
     table = get_table(h5file, '/history/AAPL')
     stock = table.read()
@@ -74,7 +77,7 @@ def main(options):
     start_beta = time.time()
     compute_running_betas(stock, bench)
     print 'beta computation took %s' % (time.time() - start_beta)
-    print 'Total work took %s' % (time.time() - start)
+    print 'Total work took %s' % (time.time() - start_time)
 
     table.close()
     h5file.close()
@@ -108,8 +111,8 @@ def _update_history_table(h5file, group, symbol, serie):
 
 
 def get_table(db, node_path):
-    node_path = norm_node_path(node_path)
-    return db.get_node(node_path) if node_path in db else None
+    path = norm_node_path(node_path)
+    return db.get_node(path) if path in db else None
 
 
 def norm_node_path(node_path):
