@@ -103,7 +103,7 @@ parser = OptionParser(usage=(
 
 parser.add_option('--db-path',
                   dest='db_path',
-                  default='data/citadel.h5',
+                  default='db.h5',
                   help='Path to the PyTables file')
 
 parser.add_option('--start-date',
