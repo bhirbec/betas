@@ -39,8 +39,8 @@ def load_data(h5file, options):
 
 
 def _load_stock_list(h5file, file_path, market_symbol):
-    for symbol, attrs in _read_stock_list(file_path):
-        fnode = filenode.new_node(h5file, where='/stock', name=symbol)
+    for attrs in _read_stock_list(file_path):
+        fnode = filenode.new_node(h5file, where='/stock', name=attrs['symbol'])
         fnode.attrs.content_type = 'text/plain; charset=us-ascii'
         fnode.attrs.market_symbol = market_symbol
         for key, value in attrs.items():
@@ -57,14 +57,15 @@ def _read_stock_list(file):
         reader.next()
 
         for symbol, name, _, cap, _, _, sector, industry, _, _ in reader:
-            serie.append((symbol.strip(), dict(
+            serie.append(dict(
+                symbol = symbol,
                 name = name.strip(),
                 cap = cap,
                 sector = sector.strip(),
                 industry = industry.strip(),
-            )))
+            ))
 
-    return serie
+    return serie[:100]
 
 
 def _load_stocks_histories(h5file, options):

@@ -1,6 +1,13 @@
+import os
 from  datetime import datetime
 
 import numpy as np
+from tables import open_file
+
+
+def open_db(path):
+    mode = 'a' if os.path.exists(path) else 'w'
+    return open_file(path, mode=mode)
 
 
 def update_table(h5file, group, table, serie, cols):

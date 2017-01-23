@@ -1,0 +1,34 @@
+html,
+body {
+	padding: 0;
+	margin: 0;
+}
+
+body,
+select,
+input {
+	font-family: Roboto, sans-serif;
+	font-size: 0.9em;
+}
+
+#stock-list {
+	position: absolute;
+	width: 20em;
+	max-height: 100%;
+	overflow-y: scroll;
+	border-right: 1px solid #ccc;
+}
+
+#stock-search input {
+	width: 20em;
+	height: 2em;
+}
+
+#stock-list div {
+	padding: 0.5em;
+}
+
+#stock-list div:nth-child(even) {
+	background-color: #f9f9f9;
+}
+

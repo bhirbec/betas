@@ -8,6 +8,7 @@ Vagrant.configure("2") do |config|
         vb.customize ["modifyvm", :id, "--cpus", "2"]
     end
 
+    config.vm.network :forwarded_port, guest: 5000, host: 5000
     config.vm.network "private_network", ip: "172.17.8.150"
     config.vm.synced_folder ".", "/vagrant", :nfs => true
 

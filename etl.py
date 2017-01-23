@@ -5,11 +5,9 @@ from datetime import datetime
 from optparse import OptionParser
 from multiprocessing import cpu_count
 
-from tables import open_file
-
 from etl.loader import NASDAQ, load_data
 from etl.indicator import compute_indicators
-from etl.dblib import parse_date
+from etl.dblib import open_db, parse_date
 
 
 parser = OptionParser(usage=(
@@ -63,12 +61,9 @@ parser.add_option('--nb-proc',
 def main(options):
     try:
         start_time = time.time()
-        mode = 'a' if os.path.exists(options.db_path) else 'w'
-
-        h5file = open_file(options.db_path, mode=mode)
+        h5file = open_db(options.db_path)
         load_data(h5file, options)
         compute_indicators(h5file, NASDAQ, options.nb_proc)
-
         print 'Total work took %s' % (time.time() - start_time)
     finally:
         h5file.close()
