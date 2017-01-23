@@ -46,4 +46,4 @@ Options:
 
 Run the test with the following command:
 
-`$ nosetests tests.py`
+`$ nosetests test/tests.py`

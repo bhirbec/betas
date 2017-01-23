@@ -7,9 +7,9 @@ from multiprocessing import cpu_count
 
 from tables import open_file
 
-from loader import NASDAQ, load_data
-from indicator import compute_indicators
-from dblib import parse_date
+from etl.loader import NASDAQ, load_data
+from etl.indicator import compute_indicators
+from etl.dblib import parse_date
 
 
 parser = OptionParser(usage=(

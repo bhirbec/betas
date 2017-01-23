@@ -9,9 +9,10 @@ from tables.nodes import filenode
 import yahoo
 from dblib import get_table, update_table, parse_date
 
+
 NASDAQ = '^IXIC'
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
-NASDAQ_FILE = os.path.join(PROJECT_DIR, 'data/nasdaq.csv')
+NASDAQ_FILE = os.path.join(PROJECT_DIR, '../data/nasdaq.csv')
 MARKET = [(NASDAQ_FILE, NASDAQ)]
 
 
