@@ -1,3 +1,5 @@
+import os
+import csv
 from datetime import timedelta
 
 import numpy as np
@@ -6,33 +8,18 @@ from tables import IsDescription, StringCol, Float64Col
 import yahoo
 from dblib import get_table, update_table, parse_date
 
-
 NASDAQ = '^IXIC'
+PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
+NASDAQ_FILE = os.path.join(PROJECT_DIR, 'data/nasdaq.csv')
 
-SYMBOLS = [
-    'PIH', 'FLWS', 'FCCY', 'SRCE', 'VNET', 'TWOU', 'JOBS', 'CAFD', 'EGHT', 'AVHI', 'SHLM', 'AAON', 'ABAX', 'ABEO',
-    'ABEOW', 'ABIL', 'ABMD', 'AXAS', 'ACIU', 'ACIA', 'ACTG', 'ACHC', 'ACAD', 'ACST', 'AXDX', 'XLRN', 'ANCX', 'ARAY',
-    'ACRX', 'ACET', 'AKAO', 'ACHN', 'ACIW', 'ACRS', 'ACNB', 'ACOR', 'ATVI', 'ACTA', 'ACUR', 'ACXM', 'ADMS', 'ADMP',
-    'ADAP', 'ADUS', 'AEY', 'IOTS', 'ADMA', 'ADBE', 'ADTN', 'ADRO', 'AAAP', 'ADES', 'AEIS', 'AMD', 'ADXS', 'ADXSW',
-    'ADVM', 'MAUI', 'AEGN', 'AGLE', 'AEHR', 'AMTX', 'AEPI', 'AERI', 'AVAV', 'AEZS', 'AEMD', 'GNMX', 'AFMD', 'AGEN',
-    'AGRX', 'AGYS', 'AGIO', 'AGNC', 'AGNCB', 'AGNCP', 'AGFS', 'AGFSW', 'AIMT', 'AIRM', 'AIRT', 'ATSG', 'AIRG', 'AMCN',
-    'AKAM', 'AKTX', 'AKBA', 'AKER', 'AKRX', 'ALRM', 'ALSK', 'AMRI', 'ALBO', 'ABDC', 'ADHD', 'ALDR', 'ALDX', 'ALXN',
-    'ALCO', 'ALGN', 'ALIM', 'ALJJ', 'ALKS', 'ABTX', 'ALGT', 'AIQ', 'AHGP', 'AMMA', 'ARLP', 'AHPI', 'AMOT', 'ALQA',
-    'ALLT', 'MDRX', 'AFAM', 'ALNY', 'AOSL', 'GOOG', 'GOOGL', 'SMCP', 'ATEC', 'SWIN', 'ASPS', 'AIMC', 'AMAG', 'AMRN',
-    'AMRK', 'AYA', 'AMZN', 'AMBC', 'AMBCW', 'AMBA', 'AMCX', 'DOX', 'AMDA', 'AMED', 'UHAL', 'ATAX', 'AMOV', 'AAL',
-    'ACSF', 'AETI', 'AMNB', 'ANAT', 'AOBC', 'APEI', 'ARII', 'AMRB', 'AMSWA', 'AMSC', 'AMWD', 'CRMT', 'ABCB', 'AMSF',
-    'ASRV', 'ASRVP', 'ATLO', 'AMGN', 'FOLD', 'AMKR', 'AMPH', 'IBUY', 'ASYS', 'AFSI', 'AMRS', 'ADI', 'ALOG', 'AVXL',
-    'ANCB', 'ANDA', 'ANDAR', 'ANDAU', 'ANDAW', 'ANGI', 'ANGO', 'ANIP', 'ANIK', 'ANSS', 'ATRS', 'ANTH', 'ABAC', 'APOG',
-    'APOL', 'APEN', 'AINV', 'APPF', 'AAPL', 'ARCI', 'APDN', 'APDNW', 'AGTC', 'AMAT', 'AMCC', 'AAOI', 'AREX', 'APTI',
-    'APRI', 'APVO', 'APTO', 'AQMS', 'AQB', 'AQXP', 'ARDM', 'ARLZ', 'PETX', 'ABUS', 'ARCW', 'ABIO', 'RKDA', 'ARCB',
-    'ACGL', 'ACGLP', 'APLP', 'ACAT', 'ARDX', 'ARNA', 'ARCC', 'AGII', 'AGIIL', 'ARGS', 'ARIS', 'ARIA', 'ARKR', 'ARTX',
-    'ARQL', 'ARRY', 'ARRS', 'DWAT', 'AROW', 'ARWR', 'ARTNA', 'ARTW', 'ASBB', 'ASNA', 'ASND', 'ASCMA', 'APWC', 'ASML',
-    'AZPN', 'ASMB', 'ASFI', 'ASTE', 'ATRO', 'ALOT', 'ASTC', 'ASUR', 'ATAI', 'ATRA', 'ATHN', 'ATHX', 'AAPC', 'AAME',
-    'ACBI', 'ACFC', 'ABY', 'ATLC', 'AAWW', 'AFH', 'TEAM', 'ATNI', 'ATOM', 'ATOS', 'ATRC', 'ATRI', 'ATTU', 'LIFE',
-    'AUBN', 'BOLD', 'AUDC', 'AUPH', 'EARS', 'ABTL', 'ADSK', 'ADP', 'AVDL', 'AVEO', 'AVXS', 'AVNW', 'AVID', 'AVGR',
-    'AVIR', 'CAR', 'AHPA', 'AHPAU', 'AHPAW', 'AWRE', 'AXAR', 'AXARU', 'AXARW', 'ACLS', 'AXGN', 'AXSM', 'AXTI', 'AZRX',
-    'BCOM', 'RILY', 'RILYL', 'BOSC', 'BEAV', 'BIDU', 'BCPC', 'BWINA', NASDAQ
-]
+
+class StockDescription(IsDescription):
+    Symbol       = StringCol(12, pos=1)
+    Name         = StringCol(100, pos=2)
+    MarketCap    = Float64Col(pos=3)
+    MarketSymbol = StringCol(12, pos=4)
+    Sector       = StringCol(100, pos=5)
+    Industry     = StringCol(100, pos=6)
 
 
 class StockHistory(IsDescription):
@@ -47,15 +34,50 @@ def load_data(h5file, options):
     if '/history' not in h5file:
         h5file.create_group("/", 'history', 'Historical stock prices')
 
-    if not options.no_download:
-        symbols = []
-        for symbol in SYMBOLS:
-            start = _get_symbol_max_date(h5file, symbol) or options.start_date
-            symbols.append((symbol, start, options.end_date))
+    if '/stock' in h5file:
+        h5file.remove_node('/stock', recursive=True)
+    h5file.create_group("/", 'stock', 'Market components with stocks descriptions')
 
-        for symbol, serie in yahoo.async_downloads(symbols, pool_size=options.nb_greenthreads):
-            serie = list(reversed(serie))
-            update_table(h5file, 'history', symbol, serie, StockHistory)
+    serie = _read_market_components(NASDAQ_FILE, NASDAQ)
+    update_table(h5file, 'stock', 'description', serie, StockDescription)
+
+    if not options.no_download:
+        _load_stocks_histories(h5file, options)
+
+
+def _read_market_components(file, market_symbol):
+    serie = []
+    with open(file, 'r') as f:
+        reader = csv.reader(f, delimiter=',', quotechar='"')
+        reader.next()
+
+        for row in reader:
+            symbol, name, _, cap, _, _, sector, industry, _, _ = [v.strip() for v in row]
+
+            # TODO: remove use of ljust (StringCol are fixed size) :/
+            serie.append([
+                symbol.ljust(12, ' '),
+                name.ljust(100, ' '),
+                float(cap),
+                market_symbol.ljust(12, ' '),
+                sector.ljust(100, ' '),
+                industry.ljust(100, ' ')
+            ])
+    return serie
+
+
+def _load_stocks_histories(h5file, options):
+    start = _get_symbol_max_date(h5file, NASDAQ) or options.start_date
+    symbols = [(NASDAQ, start, options.end_date)]
+
+    for n in h5file.root.stock.description:
+        symbol = n['Symbol'].strip()
+        start = _get_symbol_max_date(h5file, symbol) or options.start_date
+        symbols.append((symbol, start, options.end_date))
+
+    for symbol, serie in yahoo.async_downloads(symbols, pool_size=options.nb_greenthreads):
+        serie = list(reversed(serie))
+        update_table(h5file, 'history', symbol, serie, StockHistory)
 
 
 def _get_symbol_max_date(h5file, symbol):

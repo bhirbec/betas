@@ -2,5 +2,5 @@
 *.pyc
 *.sublime-*
 *.h5
-data/
+data/_*
 anaconda/

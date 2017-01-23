@@ -12,7 +12,8 @@ def update_table(h5file, group, table, serie, cols):
     if tbl is None:
         tbl = h5file.create_table('/' + group, _norm_node_path(table), cols)
 
-    tbl.append(np.rec.array(serie))
+    data = np.rec.array(serie)
+    tbl.append(data)
     tbl.flush()
     tbl.close()
 
