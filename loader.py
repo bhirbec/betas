@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import numpy as np
 from tables import IsDescription, StringCol, Float64Col
+from tables.nodes import filenode
 
 import yahoo
 from dblib import get_table, update_table, parse_date
@@ -11,15 +12,7 @@ from dblib import get_table, update_table, parse_date
 NASDAQ = '^IXIC'
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
 NASDAQ_FILE = os.path.join(PROJECT_DIR, 'data/nasdaq.csv')
-
-
-class StockDescription(IsDescription):
-    Symbol       = StringCol(12, pos=1)
-    Name         = StringCol(100, pos=2)
-    MarketCap    = Float64Col(pos=3)
-    MarketSymbol = StringCol(12, pos=4)
-    Sector       = StringCol(100, pos=5)
-    Industry     = StringCol(100, pos=6)
+MARKET = [(NASDAQ_FILE, NASDAQ)]
 
 
 class StockHistory(IsDescription):
@@ -31,51 +24,63 @@ class StockHistory(IsDescription):
 
 
 def load_data(h5file, options):
+    if '/stock' not in h5file:
+        h5file.create_group("/", 'stock', 'Market components with stocks descriptions')
+        for file_path, market_symbol in MARKET:
+            print 'Importing %s' % file_path
+            _load_stock_list(h5file, file_path, market_symbol)
+
     if '/history' not in h5file:
         h5file.create_group("/", 'history', 'Historical stock prices')
-
-    if '/stock' in h5file:
-        h5file.remove_node('/stock', recursive=True)
-    h5file.create_group("/", 'stock', 'Market components with stocks descriptions')
-
-    serie = _read_market_components(NASDAQ_FILE, NASDAQ)
-    update_table(h5file, 'stock', 'description', serie, StockDescription)
 
     if not options.no_download:
         _load_stocks_histories(h5file, options)
 
 
-def _read_market_components(file, market_symbol):
+def _load_stock_list(h5file, file_path, market_symbol):
+    for symbol, attrs in _read_stock_list(file_path):
+        fnode = filenode.new_node(h5file, where='/stock', name=symbol)
+        fnode.attrs.content_type = 'text/plain; charset=us-ascii'
+        fnode.attrs.market_symbol = market_symbol
+        for key, value in attrs.items():
+            fnode.attrs[key] = attrs[key]
+        fnode.close()
+
+    h5file.flush()
+
+
+def _read_stock_list(file):
     serie = []
     with open(file, 'r') as f:
         reader = csv.reader(f, delimiter=',', quotechar='"')
         reader.next()
 
-        for row in reader:
-            symbol, name, _, cap, _, _, sector, industry, _, _ = [v.strip() for v in row]
+        for symbol, name, _, cap, _, _, sector, industry, _, _ in reader:
+            serie.append((symbol.strip(), dict(
+                name = name.strip(),
+                cap = cap,
+                sector = sector.strip(),
+                industry = industry.strip(),
+            )))
 
-            # TODO: remove use of ljust (StringCol are fixed size) :/
-            serie.append([
-                symbol.ljust(12, ' '),
-                name.ljust(100, ' '),
-                float(cap),
-                market_symbol.ljust(12, ' '),
-                sector.ljust(100, ' '),
-                industry.ljust(100, ' ')
-            ])
     return serie
 
 
 def _load_stocks_histories(h5file, options):
-    start = _get_symbol_max_date(h5file, NASDAQ) or options.start_date
-    symbols = [(NASDAQ, start, options.end_date)]
+    market_symbols = set([])
+    symbols = []
 
-    for n in h5file.root.stock.description:
-        symbol = n['Symbol'].strip()
+    for n in h5file.root.stock:
+        symbols.append(n.name)
+        market_symbols.add(n.attrs.market_symbol)
+
+    args = []
+    symbols += list(market_symbols)
+    for symbol in symbols:
         start = _get_symbol_max_date(h5file, symbol) or options.start_date
-        symbols.append((symbol, start, options.end_date))
+        args.append((symbol, start, options.end_date))
 
-    for symbol, serie in yahoo.async_downloads(symbols, pool_size=options.nb_greenthreads):
+    for symbol, serie in yahoo.async_downloads(args, pool_size=options.nb_greenthreads):
         serie = list(reversed(serie))
         update_table(h5file, 'history', symbol, serie, StockHistory)
 
