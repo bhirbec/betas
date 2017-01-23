@@ -30,7 +30,8 @@ def stock_betas(symbol):
 	if table is None:
 		return '[]'
 
-	betas = []
+	dates, betas = [], []
 	for r in table.read():
-		betas.append(dict(date=r['date'], beta=r['beta']))
-	return jsonify(betas)
+		dates.append(r['date'])
+		betas.append(r['beta'])
+	return jsonify(dict(dates=dates, betas=betas))

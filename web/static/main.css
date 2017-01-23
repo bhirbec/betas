@@ -11,16 +11,24 @@ input {
 	font-size: 0.9em;
 }
 
-#stock-list {
-	position: absolute;
+#left-nav {
+	float: left;
 	width: 20em;
+}
+
+#result {
+	margin-left: 20em;
+}
+
+#stock-list {
+	width: 20em;
+	position: absolute;
 	max-height: 100%;
 	overflow-y: scroll;
 	border-right: 1px solid #ccc;
 }
 
 #stock-search input {
-	width: 20em;
 	height: 2em;
 }
 
