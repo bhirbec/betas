@@ -65,7 +65,7 @@ def _read_stock_list(file):
                 industry = industry.strip(),
             ))
 
-    return serie[:100]
+    return serie
 
 
 def _load_stocks_histories(h5file, options):
