@@ -4,10 +4,9 @@ from datetime import timedelta
 
 import numpy as np
 from tables import IsDescription, StringCol, Float64Col
-from tables.nodes import filenode
 
 import yahoo
-from dblib import get_table, update_table, parse_date
+from dblib import get_table, update_table, parse_date, create_json_node, read_json_node
 
 
 NASDAQ = '^IXIC'
@@ -25,29 +24,21 @@ class StockHistory(IsDescription):
 
 
 def load_data(h5file, options):
-    if '/stock' not in h5file:
-        h5file.create_group("/", 'stock', 'Market components with stocks descriptions')
-        for file_path, market_symbol in MARKET:
-            print 'Importing %s' % file_path
-            _load_stock_list(h5file, file_path, market_symbol)
-
     if '/history' not in h5file:
         h5file.create_group("/", 'history', 'Historical stock prices')
 
-    if not options.no_download:
-        _load_stocks_histories(h5file, options)
+    for file_path, market_symbol in MARKET:
+        print 'Importing %s' % file_path
+        _load_stock_list(h5file, file_path, market_symbol)
+        if not options.no_download:
+            _load_stocks_histories(h5file, options, market_symbol)
 
 
 def _load_stock_list(h5file, file_path, market_symbol):
-    for attrs in _read_stock_list(file_path):
-        fnode = filenode.new_node(h5file, where='/stock', name=attrs['symbol'])
-        fnode.attrs.content_type = 'text/plain; charset=us-ascii'
-        fnode.attrs.market_symbol = market_symbol
-        for key, value in attrs.items():
-            fnode.attrs[key] = attrs[key]
-        fnode.close()
-
-    h5file.flush()
+    stocks = _read_stock_list(file_path)
+    for s in stocks:
+        s['market_symbol'] = market_symbol
+    fnode = create_json_node(h5file, dir_name='stock', node_name=market_symbol, content=stocks)
 
 
 def _read_stock_list(file):
@@ -68,13 +59,13 @@ def _read_stock_list(file):
     return serie
 
 
-def _load_stocks_histories(h5file, options):
+def _load_stocks_histories(h5file, options, market_symbol):
     market_symbols = set([])
     symbols = []
 
-    for n in h5file.root.stock:
-        symbols.append(n.name)
-        market_symbols.add(n.attrs.market_symbol)
+    for n in read_json_node(h5file, 'stock', market_symbol):
+        symbols.append(n['symbol'])
+        market_symbols.add(n['market_symbol'])
 
     args = []
     symbols += list(market_symbols)
