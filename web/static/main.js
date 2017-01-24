@@ -6,12 +6,28 @@
     }
 
     var App = React.createClass({
+        componentDidMount: function () {
+            var that = this
+            var n = ReactDOM.findDOMNode(this);
+
+            $(n).find('.datepicker').datepicker({
+                format: "yyyy-mm-dd",
+                autoclose: true,
+            }).on('changeDate', function (e) {
+                renderChart(that.props.selected)
+            })
+        },
+
         render: function() {
             return <div>
                 <div id="left-nav">
                     <StockList stocks={this.props.stocks} selected={this.props.selected} />
                 </div>
                 <div id="result">
+                    <label>From: </label>
+                    <input id="start-date" type="text" className={"datepicker"} />
+                    <label>To: </label>
+                    <input id="end-date" type="text" className={"datepicker"} />
                     <div id="chart"></div>
                 </div>
             </div>
@@ -24,19 +40,13 @@
         },
 
         componentDidMount: function () {
-            this.renderChart(this.state.selected);
+            renderChart(this.state.selected);
         },
 
         handleClick: function(stock, e) {
-            this.renderChart(stock)
+            renderChart(stock)
             this.setState({selected: stock})
             e.preventDefault();
-        },
-
-        renderChart: function (stock) {
-            $.get('/stock_betas/' + stock.symbol, function (data) {
-                drawGoogleChart(stock, data);
-            });
         },
 
         render: function() {
@@ -62,6 +72,17 @@
             </div>
         }
     });
+
+    function renderChart(stock) {
+        var params = {
+            start: $('#start-date').val(),
+            end: $('#end-date').val(),
+        }
+
+        $.get('/stock_betas/' + stock.symbol, params, function (data) {
+            drawGoogleChart(stock, data);
+        });
+    }
 
     function drawGoogleChart(stock, rows) {
         var data = new google.visualization.DataTable();

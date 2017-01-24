@@ -3,6 +3,7 @@ import time
 from flask import jsonify
 from flask import Flask
 from flask import render_template
+from flask import request
 
 from etl.dblib import open_db, get_table, read_json_node
 
@@ -30,6 +31,12 @@ def stock_betas(symbol):
         return '[]'
 
     output = []
+    start = request.args.get('start')
+    end = request.args.get('end')
+
     for r in table.read():
-        output.append([r['date'], r['beta']])
+        date = r['date']
+        if (not start or start <= date) and (not end or date <= end):
+            output.append([date, r['beta']])
+
     return jsonify(output)
