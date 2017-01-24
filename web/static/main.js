@@ -47,7 +47,7 @@
                     {this.props.stocks.map(function (s) {
                         var klass = s.symbol == that.state.selected.symbol ? 'selected' : '';
                         return <a key={s.symbol} href="#{s.symbol}" onClick={that.handleClick.bind(that, s)} className={klass}>
-                            {s.name}
+                            {s.name} ({s.symbol})
                         </a>
                     })}
                 </div>
