@@ -19,24 +19,7 @@
     });
 
     var StockList = React.createClass({
-        render: function() {
-            var that = this;
-
-            return <div id='stock-list'>
-                <StockSearch />
-                <div>
-                    {this.props.stocks.map(function (s) {
-                        return <StockLink symbol={s.symbol} name={s.name} />
-                    })}
-                </div>
-            </div>
-        }
-    });
-
-    var StockLink = React.createClass({
-
-        handleClick: function(e) {
-            var stock = this.props
+        handleClick: function(stock, e) {
             $.get('/stock_betas/' + stock.symbol, function (data) {
                 drawGoogleChart(stock, data);
             });
@@ -45,7 +28,16 @@
         },
 
         render: function() {
-            return <a key={this.props.symbol} href="#{this.props.symbol}" onClick={this.handleClick}>{this.props.name}</a>
+            var that = this;
+
+            return <div id='stock-list'>
+                <StockSearch />
+                <div>
+                    {this.props.stocks.map(function (s) {
+                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.handleClick.bind(this, s)}>{s.name}</a>
+                    })}
+                </div>
+            </div>
         }
     });
 
