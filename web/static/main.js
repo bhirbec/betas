@@ -24,9 +24,11 @@
 
             return <div id='stock-list'>
                 <StockSearch />
-                {this.props.stocks.map(function (s) {
-                    return <div key={s.symbol}><StockLink symbol={s.symbol} name={s.name} /></div>
-                })}
+                <div>
+                    {this.props.stocks.map(function (s) {
+                        return <StockLink symbol={s.symbol} name={s.name} />
+                    })}
+                </div>
             </div>
         }
     });
@@ -43,7 +45,7 @@
         },
 
         render: function() {
-            return <a href="#{this.props.symbol}" onClick={this.handleClick}>{this.props.name}</a>
+            return <a key={this.props.symbol} href="#{this.props.symbol}" onClick={this.handleClick}>{this.props.name}</a>
         }
     });
 

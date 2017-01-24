@@ -32,15 +32,21 @@ input {
 	border-right: 1px solid #ccc;
 }
 
-#stock-search input {
-	height: 2em;
+#stock-list a {
+	display: block;
+	padding: .75em 1em;
+	color: #004178;
+	text-decoration: none;
 }
 
-#stock-list div {
-	padding: 0.5em;
+#stock-list div a:hover {
+	background-color: #ccc;
 }
 
-#stock-list div:nth-child(even) {
+#stock-list a:nth-child(even) {
 	background-color: #f9f9f9;
 }
 
+#stock-search input {
+	height: 2em;
+}
