@@ -39,6 +39,7 @@ input {
 	text-decoration: none;
 }
 
+#stock-list div a.selected,
 #stock-list div a:hover {
 	background-color: #ccc;
 }

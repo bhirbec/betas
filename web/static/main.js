@@ -1,7 +1,7 @@
 (function () {
     function loadApp() {
         $.get('/stock_list', function (stocks) {
-            ReactDOM.render(<App stocks={stocks} />, document.getElementById('app'));
+            ReactDOM.render(<App stocks={stocks} selected={stocks[0]} />, document.getElementById('app'));
         });
     }
 
@@ -9,7 +9,7 @@
         render: function() {
             return <div>
                 <div id="left-nav">
-                    <StockList stocks={this.props.stocks} />
+                    <StockList stocks={this.props.stocks} selected={this.props.selected} />
                 </div>
                 <div id="result">
                     <div id="chart"></div>
@@ -19,22 +19,36 @@
     });
 
     var StockList = React.createClass({
+        getInitialState: function () {
+            return {selected: this.props.selected}
+        },
+
+        componentDidMount: function () {
+            this.renderChart(this.state.selected);
+        },
+
         handleClick: function(stock, e) {
+            this.renderChart(stock)
+            this.setState({selected: stock})
+            e.preventDefault();
+        },
+
+        renderChart: function (stock) {
             $.get('/stock_betas/' + stock.symbol, function (data) {
                 drawGoogleChart(stock, data);
             });
-
-            e.preventDefault();
         },
 
         render: function() {
             var that = this;
-
             return <div id='stock-list'>
                 <StockSearch />
                 <div>
                     {this.props.stocks.map(function (s) {
-                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.handleClick.bind(this, s)}>{s.name}</a>
+                        var klass = s.symbol == that.state.selected.symbol ? 'selected' : '';
+                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.handleClick.bind(that, s)} className={klass}>
+                            {s.name}
+                        </a>
                     })}
                 </div>
             </div>
