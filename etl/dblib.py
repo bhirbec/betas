@@ -26,6 +26,7 @@ def update_table(h5file, group, table, serie, cols):
     tbl.flush()
     tbl.close()
 
+
 def create_json_node(h5file, dir_name, node_name, content):
     dir_path = _norm_node_path('/{0}'.format(dir_name))
     node_path = _norm_node_path('/{0}/{1}'.format(dir_name, node_name))
@@ -51,6 +52,7 @@ def read_json_node(h5file, *parts):
     with filenode.open_node(node, 'r') as f:
         content = json.loads(f.read())
 
+    node.close()
     return content
 
 
