@@ -1,5 +1,5 @@
 (function () {
-    function search() {
+    function loadApp() {
         $.get('/stock_list', function (stocks) {
             ReactDOM.render(<App stocks={stocks} />, document.getElementById('app'));
         });
@@ -12,7 +12,7 @@
                     <StockList stocks={this.props.stocks} />
                 </div>
                 <div id="result">
-                    <canvas id="chart"></canvas>
+                    <div id="chart"></div>
                 </div>
             </div>
         }
@@ -34,10 +34,9 @@
     var StockLink = React.createClass({
 
         handleClick: function(e) {
-            $.get('/stock_betas/' + this.props.symbol, function (data) {
-                $('#result').empty();
-                $('#result').append('<canvas id="chart"></canvas>');
-                createChart(data.dates, data.betas);
+            var stock = this.props
+            $.get('/stock_betas/' + stock.symbol, function (data) {
+                drawGoogleChart(stock, data);
             });
 
             e.preventDefault();
@@ -56,46 +55,31 @@
         }
     });
 
-    function createChart(labels, serie) {
-        var data = {
-            // labels: ["January", "February", "March", "April", "May", "June", "July"],
-            labels: labels,
-            datasets: [
-                {
-                    label: "My First dataset",
-                    fill: false,
-                    lineTension: 0.1,
-                    backgroundColor: "rgba(75,192,192,0.4)",
-                    borderColor: "rgba(75,192,192,1)",
-                    borderCapStyle: 'butt',
-                    borderDash: [],
-                    borderDashOffset: 0.0,
-                    borderJoinStyle: 'miter',
-                    pointBorderColor: "rgba(75,192,192,1)",
-                    pointBackgroundColor: "#fff",
-                    pointBorderWidth: 1,
-                    pointHoverRadius: 5,
-                    pointHoverBackgroundColor: "rgba(75,192,192,1)",
-                    pointHoverBorderColor: "rgba(220,220,220,1)",
-                    pointHoverBorderWidth: 2,
-                    pointRadius: 1,
-                    pointHitRadius: 10,
-                    data: serie,
-                    spanGaps: false,
-                }
-            ]
+    function drawGoogleChart(stock, rows) {
+        var data = new google.visualization.DataTable();
+        data.addColumn('date', 'Time');
+        data.addColumn('number', 'Beta');
+
+        for (var i = 0; i < rows.length; i++) {
+            var parts = rows[i][0].split('-')
+            rows[i][0] = new Date(parts[0], parts[1], parts[2])
+        }
+
+        data.addRows(rows);
+
+        var options = {
+            chart: {
+              title: 'Beta Over Time - ' + stock.name,
+            },
+            width: 900,
+            height: 400
         };
 
-        var ctx = document.getElementById('chart');
-
-        var myLineChart = new Chart(ctx, {
-            type: 'line',
-            data: data,
-            options: {}
-        });
-
+        var chart = new google.charts.Line(document.getElementById('chart'));
+        chart.draw(data, options);
     }
 
-    search();
+    google.charts.load('current', {'packages':['line']});
+    google.charts.setOnLoadCallback(loadApp);
 })()
 
