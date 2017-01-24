@@ -1,6 +1,6 @@
 import csv
 import urllib2
-from datetime import datetime
+from datetime import datetime, date
 from urllib import urlencode
 
 from eventlet import GreenPool
@@ -39,6 +39,10 @@ def download(symbol, start, end=None):
     Return:
         list of tuples (date, opening, closing, vol, roi).
     '''
+    end = end or _today()
+    if start >= end:
+        return None
+
     url = _build_url(symbol, start, end)
     resp = urllib2.urlopen(url)
     return _parse_response(resp)
@@ -46,6 +50,11 @@ def download(symbol, start, end=None):
 
 def _async_download(args):
     symbol, start, end = args
+
+    end = end or _today()
+    if start >= end:
+        return symbol, None
+
     url = _build_url(symbol, start, end)
     print 'Downloading %s' % symbol
     try:
@@ -55,8 +64,7 @@ def _async_download(args):
         return symbol, None
 
 
-def _build_url(symbol, start, end=None):
-    end = end or datetime.now()
+def _build_url(symbol, start, end):
     return 'http://chart.finance.yahoo.com/table.csv?' + urlencode((
         ('s', symbol),
         ('a', start.month - 1),
@@ -83,3 +91,7 @@ def _parse_response(response):
         output.append((date, opening, closing, vol, roi))
 
     return output
+
+def _today():
+    d = date.today()
+    return datetime(d.year, d.month, d.day)

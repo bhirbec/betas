@@ -91,6 +91,6 @@ if __name__ == '__main__':
             sys.exit("Wrong parameter `end_date`: %s" % options.end_date)
 
     options.start_date = start_date
-    options.end_date = end_date or datetime.now()
+    options.end_date = end_date
     options.nb_proc = options.nb_proc or cpu_count()
     main(options)
