@@ -27,13 +27,13 @@ def compute_indicators(store, bench_symbol, nb_proc=2):
     table.close()
 
     pool = Pool(processes=nb_proc)
-    for result in pool.imap_unordered(_work, _iter_series(store, bench)):
+    for result in pool.imap_unordered(_work, _iter_tasks(store, bench)):
         if result is not None:
             symbol, betas = result
             store.update_table('indicator', symbol, betas, StockBeta)
 
 
-def _iter_series(store, bench):
+def _iter_tasks(store, bench):
     for n in store.get_node('/history'):
         yield n.name, n.read(), bench
         n.close()
