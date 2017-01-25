@@ -14,13 +14,24 @@ app = Flask(__name__)
 store = Storage('db.h5')
 stocks = store.get_json('/stock/' + NASDAQ)
 
+
 @app.route('/')
 def home():
     return render_template('index.html', ts=time.time())
 
+
 @app.route('/stock_list')
 def stock_list():
-    return jsonify(stocks)
+    query = request.args.get('s', '').lower()
+    if not query:
+        return jsonify(stocks)
+
+    output = []
+    for s in stocks:
+        if query in s['name'].lower() or query in s['symbol'].lower():
+            output.append(s)
+
+    return jsonify(output)
 
 
 @app.route('/stock_betas/<symbol>')

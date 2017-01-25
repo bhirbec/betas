@@ -1,64 +1,110 @@
 (function () {
     function loadApp() {
-        $.get('/stock_list', function (stocks) {
-            ReactDOM.render(<App stocks={stocks} selected={stocks[0]} />, document.getElementById('app'));
-        });
+        ReactDOM.render(<App />, document.getElementById('app'));
     }
 
+    var timeout;
+
     var App = React.createClass({
+        getInitialState: function () {
+            return {stocks: [], selected: {}}
+        },
+
         componentDidMount: function () {
             var that = this
+            that.update();
+
             var n = ReactDOM.findDOMNode(this);
-
-            $(n).find('.datepicker').datepicker({
-                format: "yyyy-mm-dd",
-                autoclose: true
-            }).on('changeDate', function (e) {
-                renderChart(that.props.selected)
-            })
+            $(n).find('#stock-search input').keyup(function (e) {
+                var s = $(n).find('#stock-search input').val();
+                clearTimeout(timeout)
+                timeout = setTimeout(function() {that.update(s)}, 100);
+            });
         },
 
-        render: function() {
-            return <div>
-                <div id="left-nav">
-                    <StockList stocks={this.props.stocks} selected={this.props.selected} />
-                </div>
-                <div id="result">
-                    <div id="dates-form">
-                        <label>From: </label>
-                        <input id="start-date" type="text" className={"datepicker"} />
-                        <label>To: </label>
-                        <input id="end-date" type="text" className={"datepicker"} />
-                    </div>
-                    <div id="chart"></div>
-                </div>
-            </div>
-        }
-    });
-
-    var StockList = React.createClass({
-        getInitialState: function () {
-            return {selected: this.props.selected}
-        },
-
-        componentDidMount: function () {
-            renderChart(this.state.selected);
+        update: function (s) {
+            var that = this;
+            $.get('/stock_list', {s: s}, function (stocks) {
+                that.setState({stocks: stocks, selected: stocks[0]})
+            });
         },
 
         handleClick: function(stock, e) {
-            renderChart(stock)
             this.setState({selected: stock})
             e.preventDefault();
         },
 
         render: function() {
+            return <div>
+                <div id="left-nav">
+                    <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
+                </div>
+                <Report stock={this.state.selected} />
+            </div>
+        }
+    });
+
+    var Report = React.createClass({
+        getInitialState: function () {
+            return {start: '2010-01-01', end: ''}
+        },
+
+        shouldComponentUpdate: function (nextProps, nextState) {
+            return this.props.stock.symbol != nextProps.stock.symbol
+        },
+
+        componentDidMount: function () {
+            var that = this;
+            var $n = $(ReactDOM.findDOMNode(this));
+
+            $n.find('.datepicker').datepicker({
+                format: "yyyy-mm-dd",
+                autoclose: true
+            }).on('changeDate', function () {
+                that.setState({
+                    start: $('#start-date').val(),
+                    end: $('#end-date').val(),
+                })
+                that.update(that.props.stock, that.state);
+            })
+
+            that.update(that.props.stock, that.state);
+        },
+
+        componentWillUpdate: function (nextProps, nextState) {
+            this.update(nextProps.stock, nextState)
+        },
+
+        update: function(stock, state) {
+            $.get('/stock_betas/' + stock.symbol, state, function (data) {
+                drawGoogleChart(stock, data);
+            });
+        },
+
+        render: function () {
+            return <div id="result">
+                <div id="dates-form">
+                    <label>From: </label>
+                    <input id="start-date" type="text" className={"datepicker"} />
+                    <label>To: </label>
+                    <input id="end-date" type="text" className={"datepicker"} />
+                </div>
+                <div id="chart"></div>
+            </div>
+        }
+    });
+
+    var StockList = React.createClass({
+        render: function() {
             var that = this;
             return <div id='stock-list'>
-                <StockSearch />
+                <div id='stock-search'>
+                    <input type="text" />
+                </div>
                 <div>
                     {this.props.stocks.map(function (s) {
-                        var klass = s.symbol == that.state.selected.symbol ? 'selected' : '';
-                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.handleClick.bind(that, s)} className={klass}>
+                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
+                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.props.handleClick.bind(that, s)} className={klass}>
                             {s.name} ({s.symbol})
                         </a>
                     })}
@@ -66,25 +112,6 @@
             </div>
         }
     });
-
-    var StockSearch = React.createClass({
-        render: function() {
-            return <div id='stock-search'>
-                <input type="text" />
-            </div>
-        }
-    });
-
-    function renderChart(stock) {
-        var params = {
-            start: $('#start-date').val(),
-            end: $('#end-date').val(),
-        }
-
-        $.get('/stock_betas/' + stock.symbol, params, function (data) {
-            drawGoogleChart(stock, data);
-        });
-    }
 
     function drawGoogleChart(stock, rows) {
         var data = new google.visualization.DataTable();
