@@ -28,16 +28,10 @@ def load_data(store, options):
 
     for file_path, market_symbol in MARKET:
         print 'Importing %s' % file_path
-        _load_stock_list(store, file_path, market_symbol)
+        stocks = _read_stock_list(file_path)
+        store.put_json('/stock/' + market_symbol, stocks)
         if not options.no_download:
             _load_stocks_histories(store, options, market_symbol)
-
-
-def _load_stock_list(store, file_path, market_symbol):
-    stocks = _read_stock_list(file_path)
-    for s in stocks:
-        s['market_symbol'] = market_symbol
-    store.put_json('/stock/' + market_symbol, stocks)
 
 
 def _read_stock_list(file):
@@ -55,24 +49,19 @@ def _read_stock_list(file):
                 industry = industry.strip(),
             ))
 
-    return serie[:10]
+    return serie
 
 
 def _load_stocks_histories(store, options, market_symbol):
-    market_symbols = set([])
-    symbols = []
+    stocks = store.get_json('/stock/' + market_symbol)
+    symbols = [market_symbol] + [s['symbol'] for s in stocks]
 
-    for n in store.get_json('/stock/' + market_symbol):
-        symbols.append(n['symbol'])
-        market_symbols.add(n['market_symbol'])
-
-    args = []
-    symbols += list(market_symbols)
+    tasks = []
     for symbol in symbols:
         start = _get_symbol_max_date(store, symbol) or options.start_date
-        args.append((symbol, start, options.end_date))
+        tasks.append((symbol, start, options.end_date))
 
-    for symbol, serie in yahoo.async_downloads(args, pool_size=options.nb_greenthreads):
+    for symbol, serie in yahoo.async_downloads(tasks, pool_size=options.nb_greenthreads):
         serie = list(reversed(serie))
         store.update_table('history', symbol, serie, StockHistory)
 
