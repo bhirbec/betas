@@ -14,28 +14,13 @@ input {
 #left-nav {
 	float: left;
 	width: 20em;
-}
-
-#result {
-	margin-left: 25em;
-	padding: 4em 0;
-}
-
-#dates-form input {
-	margin-left: 0.5em;
-	margin-right: 1em;
-}
-
-#chart {
-	padding: 2em 0;
+	margin: 1em;
+	border: 1px solid #ccc;
 }
 
 #stock-list {
-	width: 20em;
-	position: absolute;
-	max-height: 100%;
+	height: 40em;
 	overflow-y: scroll;
-	border-right: 1px solid #ccc;
 }
 
 #stock-list a {
@@ -45,15 +30,42 @@ input {
 	text-decoration: none;
 }
 
-#stock-list div a.selected,
-#stock-list div a:hover {
+#stock-list > a.selected,
+#stock-list > a:hover {
 	background-color: #ccc;
 }
 
-#stock-list a:nth-child(even) {
+div a:nth-child(even) {
 	background-color: #f9f9f9;
 }
 
+#stock-search {
+	line-height: 5em;
+	background-color: #f7f7f7;
+}
+
 #stock-search input {
-	height: 2em;
+    width: 18em;
+    margin: 0 1em;
+    vertical-align: baseline;
+    display: inline-block;
+}
+
+#result {
+	padding: 1em 0;
+	margin-left: 25em;
+}
+
+#dates-form {
+	margin-top: 3em;
+	margin-bottom: 2em;
+}
+
+#dates-form input {
+	margin-left: 0.5em;
+	margin-right: 1em;
+}
+
+#chart {
+	padding: 2em 0;
 }

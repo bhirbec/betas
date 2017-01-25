@@ -36,9 +36,7 @@
 
         render: function() {
             return <div>
-                <div id="left-nav">
-                    <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
-                </div>
+                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
                 <Report stock={this.state.selected} />
             </div>
         }
@@ -83,6 +81,7 @@
 
         render: function () {
             return <div id="result">
+                <h2>{this.props.stock.name} ({this.props.stock.symbol})</h2>
                 <div id="dates-form">
                     <label>From: </label>
                     <input id="start-date" type="text" className={"datepicker"} />
@@ -97,18 +96,19 @@
     var StockList = React.createClass({
         render: function() {
             var that = this;
-            return <div id='stock-list'>
-                <div id='stock-search'>
-                    <input type="text" />
-                </div>
-                <div>
-                    {this.props.stocks.map(function (s) {
-                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
-                        return <a key={s.symbol} href="#{s.symbol}" onClick={that.props.handleClick.bind(that, s)} className={klass}>
-                            {s.name} ({s.symbol})
-                        </a>
-                    })}
-                </div>
+            var text = "Search over " + this.props.stocks.length + " stocks..."
+            return <div id="left-nav">
+                    <div id='stock-search'>
+                        <input type="text" className={"form-control"} placeholder={text} />
+                    </div>
+                    <div id='stock-list'>
+                        {this.props.stocks.map(function (s) {
+                            var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
+                            return <a key={s.symbol} href="#{s.symbol}" onClick={that.props.handleClick.bind(that, s)} className={klass}>
+                                {s.name} ({s.symbol})
+                            </a>
+                        })}
+                    </div>
             </div>
         }
     });
