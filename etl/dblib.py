@@ -8,16 +8,40 @@ from tables.nodes import filenode
 
 
 class Storage(object):
+    '''
+    Storage is a wrapper class around PyTable file. It helps dealing with
+    node and table creation and provide support for JSON node.
+    '''
 
     def __init__(self, path):
         mode = 'a' if os.path.exists(path) else 'w'
         self._db = open_file(path, mode=mode)
 
     def get_node(self, path):
+        '''
+        Return the node at the given path. If the node doesn't exist then
+        None is returned.
+
+        Arguments:
+            str path: path of the node
+
+        Return:
+            None or PyTables Node() instance
+        '''
         path = _norm_node_path(path)
         return self._db.get_node(path) if path in self._db else None
 
     def create_dir(self, name, force=False):
+        '''
+        Create a directory node at the given path.
+
+        Arguments:
+            str name: name of the directory
+            bool force: if force is True then the directory is removed first
+
+        Return:
+            None
+        '''
         path = '/' + name
         if path in self._db:
             if force:
@@ -88,6 +112,9 @@ class Storage(object):
         return content
 
     def close(self):
+        '''
+        Close the data store.
+        '''
         self._db.close()
 
 
