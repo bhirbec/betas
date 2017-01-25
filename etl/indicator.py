@@ -18,7 +18,7 @@ class StockBeta(IsDescription):
 def compute_indicators(store, bench_symbol, nb_proc=2):
     store.create_dir('indicator', force=True)
 
-    table = store.get_table('/history/' + bench_symbol)
+    table = store.get_node('/history/' + bench_symbol)
     if table is None:
         print 'Error: benchmark table is empty'
         return

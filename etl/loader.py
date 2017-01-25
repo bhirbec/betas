@@ -78,7 +78,7 @@ def _load_stocks_histories(store, options, market_symbol):
 
 
 def _get_symbol_max_date(store, symbol):
-    table = store.get_table('/history/' + symbol)
+    table = store.get_node('/history/' + symbol)
     if table is None or table.nrows == 0:
         return None
 

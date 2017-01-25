@@ -25,7 +25,7 @@ def stock_list():
 
 @app.route('/stock_betas/<symbol>')
 def stock_betas(symbol):
-    table = store.get_table('/indicator/' + symbol)
+    table = store.get_node('/indicator/' + symbol)
     if table is None:
         return '[]'
 

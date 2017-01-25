@@ -14,7 +14,8 @@ class Storage(object):
         self._db = open_file(path, mode=mode)
 
     def get_node(self, path):
-        return self._db.get_node(_norm_node_path(path))
+        path = _norm_node_path(path)
+        return self._db.get_node(path) if path in self._db else None
 
     def create_dir(self, name, force=False):
         path = '/' + name
@@ -26,14 +27,15 @@ class Storage(object):
             self._db.create_group("/", name)
 
     def update_table(self, group, table, serie, cols):
-        print 'Updating table /%s/%s (%d values)' % (group, table, len(serie))
         if len(serie) == 0:
             return
 
-        tbl = self.get_table('/{0}/{1}'.format(group, table))
+        table = _norm_node_path(table)
+        tbl = self.get_node('/{0}/{1}'.format(group, table))
         if tbl is None:
-            tbl = self._db.create_table('/' + group, _norm_node_path(table), cols)
+            tbl = self._db.create_table('/' + group, table, cols)
 
+        print 'Updating table /%s/%s (%d values)' % (group, table, len(serie))
         data = np.rec.array(serie)
         tbl.append(data)
         tbl.flush()
@@ -65,10 +67,6 @@ class Storage(object):
 
         node.close()
         return content
-
-    def get_table(self, node_path):
-        path = _norm_node_path(node_path)
-        return self._db.get_node(path) if path in self._db else None
 
     def close(self):
         self._db.close()
