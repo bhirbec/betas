@@ -18,6 +18,12 @@ input {
 
 #result {
 	margin-left: 25em;
+	padding: 4em 0;
+}
+
+#dates-form input {
+	margin-left: 0.5em;
+	margin-right: 1em;
 }
 
 #chart {

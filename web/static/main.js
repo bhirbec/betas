@@ -12,7 +12,7 @@
 
             $(n).find('.datepicker').datepicker({
                 format: "yyyy-mm-dd",
-                autoclose: true,
+                autoclose: true
             }).on('changeDate', function (e) {
                 renderChart(that.props.selected)
             })
@@ -24,10 +24,12 @@
                     <StockList stocks={this.props.stocks} selected={this.props.selected} />
                 </div>
                 <div id="result">
-                    <label>From: </label>
-                    <input id="start-date" type="text" className={"datepicker"} />
-                    <label>To: </label>
-                    <input id="end-date" type="text" className={"datepicker"} />
+                    <div id="dates-form">
+                        <label>From: </label>
+                        <input id="start-date" type="text" className={"datepicker"} />
+                        <label>To: </label>
+                        <input id="end-date" type="text" className={"datepicker"} />
+                    </div>
                     <div id="chart"></div>
                 </div>
             </div>
