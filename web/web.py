@@ -12,7 +12,7 @@ NASDAQ = '^IXIC'
 
 app = Flask(__name__)
 store = Storage('db.h5')
-stocks = store.read_json_node('stock', NASDAQ)
+stocks = store.get_json('/stock/' + NASDAQ)
 
 @app.route('/')
 def home():

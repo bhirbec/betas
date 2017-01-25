@@ -62,7 +62,7 @@ def _load_stocks_histories(store, options, market_symbol):
     market_symbols = set([])
     symbols = []
 
-    for n in store.read_json_node('stock', market_symbol):
+    for n in store.get_json('/stock/' + market_symbol):
         symbols.append(n['symbol'])
         market_symbols.add(n['market_symbol'])
 

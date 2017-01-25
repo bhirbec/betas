@@ -55,13 +55,21 @@ class Storage(object):
         fnode.close()
         self._db.flush()
 
-    def read_json_node(self, *parts):
-        path = '/'.join(parts)
-        path = _norm_node_path('/' + path)
-        if path not in self._db:
+    def get_json(self, path):
+        '''
+        JSON decode the content at the given path and return it.
+
+        Arguments:
+            str path: where to store the content
+
+        Return:
+            JSON unmarshalled content
+        '''
+
+        node = self.get_node(path)
+        if node is None:
             return None
 
-        node = self._db.get_node(path)
         with filenode.open_node(node, 'r') as f:
             content = json.loads(f.read())
 
