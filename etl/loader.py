@@ -6,7 +6,7 @@ import numpy as np
 from tables import IsDescription, StringCol, Float64Col
 
 import yahoo
-from dblib import get_table, update_table, parse_date, create_json_node, read_json_node
+from dblib import parse_date
 
 
 NASDAQ = '^IXIC'
@@ -23,22 +23,21 @@ class StockHistory(IsDescription):
     roi     = Float64Col(pos=5)
 
 
-def load_data(h5file, options):
-    if '/history' not in h5file:
-        h5file.create_group("/", 'history', 'Historical stock prices')
+def load_data(store, options):
+    store.create_dir('history')
 
     for file_path, market_symbol in MARKET:
         print 'Importing %s' % file_path
-        _load_stock_list(h5file, file_path, market_symbol)
+        _load_stock_list(store, file_path, market_symbol)
         if not options.no_download:
-            _load_stocks_histories(h5file, options, market_symbol)
+            _load_stocks_histories(store, options, market_symbol)
 
 
-def _load_stock_list(h5file, file_path, market_symbol):
+def _load_stock_list(store, file_path, market_symbol):
     stocks = _read_stock_list(file_path)
     for s in stocks:
         s['market_symbol'] = market_symbol
-    fnode = create_json_node(h5file, dir_name='stock', node_name=market_symbol, content=stocks)
+    store.create_json_node(dir_name='stock', node_name=market_symbol, content=stocks)
 
 
 def _read_stock_list(file):
@@ -56,30 +55,30 @@ def _read_stock_list(file):
                 industry = industry.strip(),
             ))
 
-    return serie
+    return serie[:10]
 
 
-def _load_stocks_histories(h5file, options, market_symbol):
+def _load_stocks_histories(store, options, market_symbol):
     market_symbols = set([])
     symbols = []
 
-    for n in read_json_node(h5file, 'stock', market_symbol):
+    for n in store.read_json_node('stock', market_symbol):
         symbols.append(n['symbol'])
         market_symbols.add(n['market_symbol'])
 
     args = []
     symbols += list(market_symbols)
     for symbol in symbols:
-        start = _get_symbol_max_date(h5file, symbol) or options.start_date
+        start = _get_symbol_max_date(store, symbol) or options.start_date
         args.append((symbol, start, options.end_date))
 
     for symbol, serie in yahoo.async_downloads(args, pool_size=options.nb_greenthreads):
         serie = list(reversed(serie))
-        update_table(h5file, 'history', symbol, serie, StockHistory)
+        store.update_table('history', symbol, serie, StockHistory)
 
 
-def _get_symbol_max_date(h5file, symbol):
-    table = get_table(h5file, '/history/' + symbol)
+def _get_symbol_max_date(store, symbol):
+    table = store.get_table('/history/' + symbol)
     if table is None or table.nrows == 0:
         return None
 

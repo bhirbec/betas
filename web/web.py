@@ -5,14 +5,14 @@ from flask import Flask
 from flask import render_template
 from flask import request
 
-from etl.dblib import open_db, get_table, read_json_node
+from etl.dblib import Storage
 
 
 NASDAQ = '^IXIC'
 
 app = Flask(__name__)
-db = open_db('db.h5')
-
+store = Storage('db.h5')
+stocks = store.read_json_node('stock', NASDAQ)
 
 @app.route('/')
 def home():
@@ -20,13 +20,12 @@ def home():
 
 @app.route('/stock_list')
 def stock_list():
-    stocks = read_json_node(db, 'stock', NASDAQ)
     return jsonify(stocks)
 
 
 @app.route('/stock_betas/<symbol>')
 def stock_betas(symbol):
-    table = get_table(db, '/indicator/' + symbol)
+    table = store.get_table('/indicator/' + symbol)
     if table is None:
         return '[]'
 

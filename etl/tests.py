@@ -2,7 +2,6 @@ import os
 import datetime
 
 from nose import with_setup
-from tables import open_file
 
 import indicator
 import yahoo

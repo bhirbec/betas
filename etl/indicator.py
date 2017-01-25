@@ -6,8 +6,6 @@ import numpy as np
 from numpy import float64
 from tables import IsDescription, StringCol, Float64Col
 
-from dblib import get_table, update_table
-
 
 WINDOW_SIZE = 30
 
@@ -17,12 +15,10 @@ class StockBeta(IsDescription):
     beta = Float64Col(pos=2)
 
 
-def compute_indicators(h5file, bench_symbol, nb_proc=2):
-    if '/indicator' in h5file:
-        h5file.remove_node('/indicator', recursive=True)
-    h5file.create_group("/", 'indicator', 'Stock Betas over time')
+def compute_indicators(store, bench_symbol, nb_proc=2):
+    store.create_dir('indicator', force=True)
 
-    table = get_table(h5file, '/history/' + bench_symbol)
+    table = store.get_table('/history/' + bench_symbol)
     if table is None:
         print 'Error: benchmark table is empty'
         return
@@ -31,16 +27,14 @@ def compute_indicators(h5file, bench_symbol, nb_proc=2):
     table.close()
 
     pool = Pool(processes=nb_proc)
-    for result in pool.imap_unordered(_work, _iter_series(h5file, bench)):
-        if result is None:
-            continue
-
-        symbol, betas = result
-        update_table(h5file, 'indicator', symbol, betas, StockBeta)
+    for result in pool.imap_unordered(_work, _iter_series(store, bench)):
+        if result is not None:
+            symbol, betas = result
+            store.update_table('indicator', symbol, betas, StockBeta)
 
 
-def _iter_series(h5file, bench):
-    for n in h5file.root.history:
+def _iter_series(store, bench):
+    for n in store.get_node('/history'):
         yield n.name, n.read(), bench
         n.close()
 
