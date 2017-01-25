@@ -37,7 +37,7 @@ def _load_stock_list(store, file_path, market_symbol):
     stocks = _read_stock_list(file_path)
     for s in stocks:
         s['market_symbol'] = market_symbol
-    store.create_json_node(dir_name='stock', node_name=market_symbol, content=stocks)
+    store.put_json('/stock/' + market_symbol, stocks)
 
 
 def _read_stock_list(file):

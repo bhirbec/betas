@@ -41,15 +41,26 @@ class Storage(object):
         tbl.flush()
         tbl.close()
 
-    def create_json_node(self, dir_name, node_name, content):
-        dir_path = _norm_node_path('/{0}'.format(dir_name))
-        node_path = _norm_node_path('/{0}/{1}'.format(dir_name, node_name))
+    def put_json(self, path, content):
+        '''
+        JSON encode the given and put it at the given path.
+
+        Arguments:
+            str path: where to store the content
+            obj content: content to be stored as JSON
+
+        Return:
+            None
+        '''
+        path = _norm_node_path(path)
+        _, dir_name, node_name = path.split('/')
+        dir_path = '/' + dir_name
         if dir_path not in self._db:
             self._db.create_group("/", dir_name)
         else:
-            self._db.remove_node(node_path)
+            self._db.remove_node(path)
 
-        fnode = filenode.new_node(self._db, where=dir_path, name=_norm_node_path(node_name))
+        fnode = filenode.new_node(self._db, where=dir_path, name=node_name)
         fnode.attrs.content_type = 'text/plain; charset=us-ascii'
         fnode.write(json.dumps(content))
         fnode.close()
