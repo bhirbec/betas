@@ -11,21 +11,26 @@ input {
 	font-size: 0.9em;
 }
 
-#left-nav {
-	float: left;
-	width: 20em;
+#loading {
 	margin: 1em;
-	border: 1px solid #ccc;
+}
+
+#left-nav {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	width: 20%;
+	border-right: 1px solid #ccc;
 }
 
 #stock-list {
-	height: 40em;
+	height: 100%;
 	overflow-y: scroll;
 }
 
 #stock-list a {
 	display: block;
-	padding: .75em 1em;
+	padding: .5em 1em;
 	color: #004178;
 	text-decoration: none;
 }
@@ -33,10 +38,6 @@ input {
 #stock-list > a.selected,
 #stock-list > a:hover {
 	background-color: #ccc;
-}
-
-div a:nth-child(even) {
-	background-color: #f9f9f9;
 }
 
 #stock-search {
@@ -52,7 +53,7 @@ div a:nth-child(even) {
 }
 
 #result {
-	padding: 1em 0;
+	margin-top: 3em ;
 	margin-left: 25em;
 }
 
