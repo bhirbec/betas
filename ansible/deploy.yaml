@@ -1,0 +1,50 @@
+- hosts: all
+
+  vars:
+    rev: master
+    project_dir: /home/bhirbec/beta-project
+    anaconda_url: https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh
+
+  tasks:
+    - name: Download APT packages
+      apt: name={{item}} update_cache=true
+      sudo: yes
+      with_items:
+        - git
+        - bzip2
+
+    - name: Clone repository
+      git: repo=https://github.com/bhirbec/betas.git dest={{project_dir}} accept_hostkey=yes
+      sudo: no
+
+    - name: Fetch repository
+      shell: git fetch origin chdir={{project_dir}}
+
+    - name: Checkout {{rev}} branch
+      shell: git reset --hard origin/{{rev}} chdir={{project_dir}}
+
+    - name: Check Ananconda
+      shell: ls -l {{project_dir}}
+      register: ls_dir
+
+    - name: Download Anaconda
+      shell: curl -o anaconda.sh {{anaconda_url}} chdir={{project_dir}}
+      when: ls_dir.stdout.find('anaconda') == -1
+
+    - name: Install Anaconda
+      shell: bash anaconda.sh -p anaconda -b && rm anaconda.sh chdir={{project_dir}}
+      when: ls_dir.stdout.find('anaconda') == -1
+
+    - name: Install eventlet
+      shell: anaconda/bin/pip install eventlet chdir={{project_dir}}
+      when: ls_dir.stdout.find('anaconda') == -1
+
+    - name: Copy upstart.conf
+      template: src=upstart.conf dest=/etc/init/web.conf
+      sudo: yes
+
+    # TODO: restart doesn't work if the instance if not started yet
+    # TODO: need to load database first
+    - name: Restart Web
+      command: initctl restart web
+      sudo: yes

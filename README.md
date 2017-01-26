@@ -47,3 +47,9 @@ Options:
 Run the test with the following command:
 
 `$ nosetests test/tests.py`
+
+# Deployment
+
+Install [Ansible](http://docs.ansible.com/ansible/intro_installation.html) and run this playbook:
+
+`$ ansible-playbook ansible/deploy.yaml -i ansible/gce_hosts`  
