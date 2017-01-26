@@ -65,8 +65,6 @@
                 })
                 that.update(that.props.stock, that.state);
             })
-
-            that.update(that.props.stock, that.state);
         },
 
         componentWillUpdate: function (nextProps, nextState) {
