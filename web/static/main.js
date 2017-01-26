@@ -1,21 +1,15 @@
 (function () {
-    function loadApp() {
-        ReactDOM.render(<App />, document.getElementById('app'));
-    }
 
     var timeout;
     var query = '';
 
     var App = React.createClass({
         getInitialState: function () {
-            return {}
+            return {stocks: this.props.origStocks, selected: this.props.origStocks[0] || {}}
         },
 
         componentDidMount: function () {
             var that = this
-            $.get('/stock_list', function (stocks) {
-                that.setState({origStock: stocks, stocks: stocks, selected: stocks[0] || {}});
-            });
 
             var $n = $(ReactDOM.findDOMNode(this));
             $n.on('keyup', '#stock-search input', function (e) {
@@ -35,8 +29,8 @@
             var that = this;
             var stocks = [];
 
-            for (var i=0; i < this.state.origStock.length; i++) {
-                var stock = this.state.origStock[i];
+            for (var i=0; i < this.props.origStocks.length; i++) {
+                var stock = this.props.origStocks[i];
                 if (stock.name.toLowerCase().indexOf(s) != -1) {
                     stocks.push(stock);
                 }
@@ -52,20 +46,13 @@
 
         render: function() {
             return <div>
-                {'origStock' in this.state ?
-                    <div>
-                        <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
-                        {'symbol' in this.state.selected ?
-                            <Report stock={this.state.selected} />
-                            :
-                            <div id="result">
-                                <h2>No Match...</h2>
-                            </div>
-                        }
-
-                    </div>
+                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
+                {'symbol' in this.state.selected ?
+                    <Report stock={this.state.selected} />
                     :
-                    null
+                    <div id="result">
+                        <h2>No Match...</h2>
+                    </div>
                 }
             </div>
         }
@@ -94,6 +81,8 @@
                 })
                 that.update(that.props.stock, that.state);
             })
+
+            this.update(this.props.stock, this.state)
         },
 
         componentWillUpdate: function (nextProps, nextState) {
@@ -165,6 +154,11 @@
     }
 
     google.charts.load('current', {'packages':['line']});
-    google.charts.setOnLoadCallback(loadApp);
+
+    google.charts.setOnLoadCallback(function() {
+        $.get('/stock_list', function (stocks) {
+            ReactDOM.render(<App origStocks={stocks} />, document.getElementById('app'));
+        });
+    });
 })()
 
