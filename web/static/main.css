@@ -41,15 +41,14 @@ input {
 }
 
 #stock-search {
-	line-height: 5em;
+	padding: 1em 0;
 	background-color: #f7f7f7;
 }
 
 #stock-search input {
-    width: 18em;
-    margin: 0 1em;
-    vertical-align: baseline;
-    display: inline-block;
+    width: 90%;
+    margin: 0 auto;
+    display: block;
 }
 
 #result {
