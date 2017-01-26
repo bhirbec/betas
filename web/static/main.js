@@ -8,23 +8,6 @@
             return {stocks: this.props.origStocks, selected: this.props.origStocks[0] || {}}
         },
 
-        componentDidMount: function () {
-            var that = this
-
-            var $n = $(ReactDOM.findDOMNode(this));
-            $n.on('keyup', '#stock-search input', function (e) {
-                var newQuery = $n.find('#stock-search input').val();
-                if (query == newQuery) {
-                    return
-                } else {
-                    query = newQuery;
-                }
-
-                clearTimeout(timeout)
-                timeout = setTimeout(function() {that.update(query)}, 200);
-            });
-        },
-
         update: function (s) {
             var that = this;
             var stocks = [];
@@ -39,6 +22,33 @@
             that.setState({stocks: stocks, selected: stocks[0] || {}});
         },
 
+        handleKeyUp: function (e) {
+            var $n = $(ReactDOM.findDOMNode(this));
+            var $selected = $n.find('#stock-list a.selected');
+            var symbol = '';
+
+            if (e.keyCode == 40) {
+                symbol = ($selected.next().attr('href') || '').substring(1);
+            } else if (e.keyCode == 38) {
+                symbol = ($selected.prev().attr('href') || '').substring(1);
+            }
+
+            if (symbol != '') {
+                this.setState({selected: this.props.symbolToStock[symbol]});
+            }
+
+            var newQuery = $('#stock-search input').val();
+            if (query == newQuery) {
+                return
+            } else {
+                query = newQuery;
+            }
+
+            var that = this
+            clearTimeout(timeout)
+            timeout = setTimeout(function() {that.update(query)}, 200);
+        },
+
         handleClick: function(stock, e) {
             this.setState({selected: stock})
             e.preventDefault();
@@ -46,7 +56,7 @@
 
         render: function() {
             return <div>
-                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
+                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} handleKeyUp={this.handleKeyUp}/>
                 {'symbol' in this.state.selected ?
                     <Report stock={this.state.selected} />
                     :
@@ -115,7 +125,7 @@
             var text = "Search over " + this.props.stocks.length + " stocks..."
             return <div id="left-nav">
                     <div id='stock-search'>
-                        <input type="text" className={"form-control"} placeholder={text} />
+                        <input type="text" className={"form-control"} placeholder={text} onKeyUp={this.props.handleKeyUp} />
                     </div>
                     <div id='stock-list'>
                         {this.props.stocks.map(function (s) {
@@ -157,7 +167,11 @@
 
     google.charts.setOnLoadCallback(function() {
         $.get('/stock_list', function (stocks) {
-            ReactDOM.render(<App origStocks={stocks} />, document.getElementById('app'));
+            var symbolToStock = {}
+            for (var i = 0; i < stocks.length; i++) {
+                symbolToStock[stocks[i].symbol] = stocks[i];
+            }
+            ReactDOM.render(<App origStocks={stocks} symbolToStock={symbolToStock} />, document.getElementById('app'));
         });
     });
 })()
