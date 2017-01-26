@@ -4,29 +4,45 @@
     }
 
     var timeout;
+    var query = '';
 
     var App = React.createClass({
         getInitialState: function () {
-            return {stocks: [], selected: {}}
+            return {}
         },
 
         componentDidMount: function () {
             var that = this
-            that.update();
+            $.get('/stock_list', function (stocks) {
+                that.setState({origStock: stocks, stocks: stocks, selected: stocks[0] || {}});
+            });
 
-            var n = ReactDOM.findDOMNode(this);
-            $(n).find('#stock-search input').keyup(function (e) {
-                var s = $(n).find('#stock-search input').val();
+            var $n = $(ReactDOM.findDOMNode(this));
+            $n.on('keyup', '#stock-search input', function (e) {
+                var newQuery = $n.find('#stock-search input').val();
+                if (query == newQuery) {
+                    return
+                } else {
+                    query = newQuery;
+                }
+
                 clearTimeout(timeout)
-                timeout = setTimeout(function() {that.update(s)}, 100);
+                timeout = setTimeout(function() {that.update(query)}, 200);
             });
         },
 
         update: function (s) {
             var that = this;
-            $.get('/stock_list', {s: s}, function (stocks) {
-                that.setState({stocks: stocks, selected: stocks[0]})
-            });
+            var stocks = [];
+
+            for (var i=0; i < this.state.origStock.length; i++) {
+                var stock = this.state.origStock[i];
+                if (stock.name.toLowerCase().indexOf(s) != -1) {
+                    stocks.push(stock);
+                }
+            }
+
+            that.setState({stocks: stocks, selected: stocks[0] || {}});
         },
 
         handleClick: function(stock, e) {
@@ -36,8 +52,21 @@
 
         render: function() {
             return <div>
-                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
-                <Report stock={this.state.selected} />
+                {'origStock' in this.state ?
+                    <div>
+                        <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} />
+                        {'symbol' in this.state.selected ?
+                            <Report stock={this.state.selected} />
+                            :
+                            <div id="result">
+                                <h2>No Match...</h2>
+                            </div>
+                        }
+
+                    </div>
+                    :
+                    null
+                }
             </div>
         }
     });
@@ -102,7 +131,7 @@
                     <div id='stock-list'>
                         {this.props.stocks.map(function (s) {
                             var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
-                            return <a key={s.symbol} href="#{s.symbol}" onClick={that.props.handleClick.bind(that, s)} className={klass}>
+                            return <a key={s.symbol} href={'#' + s.symbol} onClick={that.props.handleClick.bind(that, s)} className={klass}>
                                 {s.name} ({s.symbol})
                             </a>
                         })}

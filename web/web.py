@@ -13,7 +13,6 @@ NASDAQ = '^IXIC'
 
 app = Flask(__name__)
 store = Storage('db.h5')
-stocks = store.get_json('/stock/' + NASDAQ)
 
 
 @app.route('/')
@@ -23,15 +22,8 @@ def home():
 
 @app.route('/stock_list')
 def stock_list():
-    query = request.args.get('s', '').lower()
-    if not query:
-        return jsonify(stocks)
-
-    output = []
-    for s in stocks:
-        if query in s['name'].lower() or query in s['symbol'].lower():
-            output.append(s)
-
+    stocks = store.get_json('/stock/' + NASDAQ)
+    output = sorted(stocks, key=lambda s: s['name'])
     return jsonify(output)
 
 
