@@ -1,4 +1,5 @@
 import time
+from optparse import OptionParser
 
 from flask import jsonify
 from flask import Flask
@@ -50,3 +51,16 @@ def stock_betas(symbol):
             output.append([date, r['beta']])
 
     return jsonify(output)
+
+
+parser = OptionParser(usage=(
+    'usage: python %prog [options]\n\n'
+    'Start a web server that provide financial reports \n'
+))
+
+parser.add_option('--host', dest='host', default='localhost', help='TCP Host (default: localhost)')
+parser.add_option('--port', dest='port', default='8080', help='TCP port (default: 8080)')
+options, _ = parser.parse_args()
+
+if __name__ == '__main__':
+      app.run(host=options.host, port=options.port)
