@@ -5,9 +5,9 @@ from datetime import datetime
 from optparse import OptionParser
 from multiprocessing import cpu_count
 
-from etl.loader import NASDAQ, load_data
-from etl.indicator import compute_indicators
-from etl.dblib import Storage, parse_date
+from loader import NASDAQ, load_data
+from indicator import compute_indicators
+from dblib import Storage, parse_date
 
 
 parser = OptionParser(usage=(
@@ -76,6 +76,7 @@ if __name__ == '__main__':
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
     elif os.path.exists(options.db_path) and options.destroy:
+        print 'remove'
         os.remove(options.db_path)
 
     start_date = parse_date(options.start_date)
