@@ -46,7 +46,7 @@ def stock_betas(symbol):
 
 parser = OptionParser(usage=(
     'usage: python %prog [options]\n\n'
-    'Start a web server that provide financial reports \n'
+    'Start a web server that provides Financial reports.\n'
 ))
 
 parser.add_option('--host', dest='host', default='localhost', help='TCP Host (default: localhost)')

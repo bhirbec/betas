@@ -1,18 +1,45 @@
+# Beta Analysis
+
 The goal of this project is to develop scalable, reusable, extensible code that estimates the beta 
 for a basket of individual stocks and visualizes the results using the Python programming language 
 and supporting libraries.
 
-# Install Development Environment (Linux)
+This project is composed of two scripts:
 
-Download and install [Anaconda2-4.0](https://www.continuum.io/downloads) for Linux.
+- etl/etl.py: imports about 3000 stocks (NASDAQ only) from Yahoo Finance and computes rolling
+  betas (30 days) for each stock. 
 
-# Running the ETL
+- web/web.py: GUI that makes possible to show the rolling betas for each stock. It is
+  build with React.js
+
+Demo available here [http://104.197.68.179/](http://104.197.68.179/)
+
+## Development Environment
+
+Download and install [Anaconda2-4.0](https://www.continuum.io/downloads).
+
+Clone the repository:
+
+`$ git clone https://github.com/bhirbec/betas.git`
+
+Create Anaconda project:
+
+`$ conda create --name betas`
+
+Install `eventlet` with pip:
+
+```
+$ source activate betas
+$ pip install eventlet
+```
+
+## Running the ETL
 
 Run the ETL with the following command:
 
-`$ python etl.py`
+`$ python etl/etl.py`
 
-Some options are available as command line arguments:
+Some options are available:
 
 ```
 $ python etl.py -h
@@ -42,13 +69,37 @@ Options:
                         (default to multiprocessing.cpu_count())
 ```
 
-# Running the Unit Tests
+## Running the Web Server
+
+Start the server with the following command:
+
+`$ PYTHONPATH=. python web/web.py`
+
+Point your browser (only tested on Google Chrome) at [localhost:8080](http://localhost:8080/).
+
+Here's the full description of the command:
+
+```
+$ PYTHONPATH=. python web/web.py -h
+Usage: python web.py [options]
+
+Start a web server that provides Financial reports.
+
+
+Options:
+  -h, --help         show this help message and exit
+  --host=HOST        TCP Host (default: localhost)
+  --port=PORT        TCP port (default: 8080)
+  --db-path=DB_PATH  Path to the PyTables file
+```
+
+## Running the Unit Tests
 
 Run the test with the following command:
 
 `$ nosetests test/tests.py`
 
-# Deployment
+## Deployment
 
 Install [Ansible](http://docs.ansible.com/ansible/intro_installation.html) and run this playbook:
 
