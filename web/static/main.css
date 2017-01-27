@@ -59,6 +59,7 @@ input {
 #result {
 	padding-top: 1em;
 	margin-left: 25em;
+	max-width: 1000px;
 }
 
 #dates-form {

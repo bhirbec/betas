@@ -142,7 +142,7 @@
     function drawGoogleChart(stock, rows) {
         var data = new google.visualization.DataTable();
         data.addColumn('date', 'Time');
-        data.addColumn('number', 'Beta');
+        data.addColumn('number', 'Beta (30 days)');
 
         for (var i = 0; i < rows.length; i++) {
             var parts = rows[i][0].split('-')
@@ -155,7 +155,7 @@
             chart: {
               title: 'Beta Over Time - ' + stock.name,
             },
-            width: 900,
+            width: $('#result').width() - 50,
             height: 400
         };
 
