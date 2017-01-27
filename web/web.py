@@ -12,7 +12,6 @@ from etl.dblib import Storage
 NASDAQ = '^IXIC'
 
 app = Flask(__name__)
-store = Storage('db.h5')
 
 
 @app.route('/')
@@ -52,7 +51,9 @@ parser = OptionParser(usage=(
 
 parser.add_option('--host', dest='host', default='localhost', help='TCP Host (default: localhost)')
 parser.add_option('--port', dest='port', default='8080', help='TCP port (default: 8080)')
+parser.add_option('--db-path', dest='db_path', default='db.h5', help='Path to the PyTables file')
 options, _ = parser.parse_args()
 
 if __name__ == '__main__':
-      app.run(host=options.host, port=options.port)
+    store = Storage(options.db_path)
+    app.run(host=options.host, port=options.port)
