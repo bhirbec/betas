@@ -87,6 +87,7 @@ class Storage(object):
         fnode = filenode.new_node(self._db, where=dir_path, name=node_name)
         fnode.attrs.content_type = 'text/plain; charset=us-ascii'
         fnode.write(json.dumps(content))
+        fnode.flush()
         fnode.close()
         self._db.flush()
 
@@ -115,6 +116,7 @@ class Storage(object):
         '''
         Close the data store.
         '''
+        self._db.flush()
         self._db.close()
 
 
