@@ -14,20 +14,34 @@ NASDAQ = '^IXIC'
 app = Flask(__name__)
 
 
+def storage(f):
+    def _f(*args, **kwargs):
+        try:
+            store = Storage(options.db_path)
+            return f(store, *args, **kwargs)
+        finally:
+            store.close()
+
+    _f.__name__ = f.__name__
+    return _f
+
+
 @app.route('/')
 def home():
     return render_template('index.html', ts=time.time())
 
 
 @app.route('/stock_list')
-def stock_list():
+@storage
+def stock_list(store):
     stocks = store.get_json('/stock/' + NASDAQ)
     output = sorted(stocks, key=lambda s: s['name'])
     return jsonify(output)
 
 
 @app.route('/stock_betas/<symbol>')
-def stock_betas(symbol):
+@storage
+def stock_betas(store, symbol):
     table = store.get_node('/indicator/' + symbol)
     if table is None:
         return '[]'
@@ -55,5 +69,4 @@ parser.add_option('--db-path', dest='db_path', default='db.h5', help='Path to th
 options, _ = parser.parse_args()
 
 if __name__ == '__main__':
-    store = Storage(options.db_path)
     app.run(host=options.host, port=options.port)
