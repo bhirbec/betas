@@ -57,6 +57,12 @@ parser.add_option('--nb-proc',
                   help='Number of processors used to compute indicators (default to '
                        'multiprocessing.cpu_count())')
 
+parser.add_option('-n', '--nb-stocks',
+                  dest='nb_stocks',
+                  type='int',
+                  default=None,
+                  help='Limit the download to `n` stocks')
+
 
 def main(options):
     try:

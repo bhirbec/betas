@@ -29,7 +29,8 @@ def load_data(store, options):
     for file_path, market_symbol in MARKET:
         print 'Importing %s' % file_path
         stocks = _read_stock_list(file_path)
-        store.put_json('/stock/' + market_symbol, stocks)
+        n = options.nb_stocks or len(stocks)
+        store.put_json('/stock/' + market_symbol, stocks[:n])
         if not options.no_download:
             _load_stocks_histories(store, options, market_symbol)
 
