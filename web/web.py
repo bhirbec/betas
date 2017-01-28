@@ -53,7 +53,7 @@ def stock_betas(store, symbol):
     for r in table.read():
         date = r['date']
         if (not start or start <= date) and (not end or date <= end):
-            output.append([date, r['beta']])
+            output.append(list(r))
 
     return jsonify(output)
 
