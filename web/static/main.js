@@ -70,7 +70,7 @@
 
     var Report = React.createClass({
         getInitialState: function () {
-            return {start: '2010-01-01', end: ''}
+            return {start: '2016-01-01', end: ''}
         },
 
         shouldComponentUpdate: function (nextProps, nextState) {
