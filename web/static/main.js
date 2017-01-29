@@ -5,21 +5,22 @@
 
     var App = React.createClass({
         getInitialState: function () {
-            return {stocks: this.props.origStocks, selected: this.props.origStocks[0] || {}}
+            return {stocks: [], selected: {}, index: {}}
         },
 
-        update: function (s) {
+        componentDidMount: function() {
+            this.update('')
+        },
+
+        update: function (q) {
             var that = this;
-            var stocks = [];
-
-            for (var i=0; i < this.props.origStocks.length; i++) {
-                var stock = this.props.origStocks[i];
-                if (stock.name.toLowerCase().indexOf(s) != -1) {
-                    stocks.push(stock);
+            $.get('/stock_list', {q: q}, function (stocks) {
+                var index = {}
+                for (var i = 0; i < stocks.length; i++) {
+                    index[stocks[i].symbol] = stocks[i];
                 }
-            }
-
-            that.setState({stocks: stocks, selected: stocks[0] || {}});
+                that.setState({stocks: stocks, selected: stocks[0] || {}, index: index});
+            });
         },
 
         handleKeyUp: function (e) {
@@ -34,7 +35,7 @@
             }
 
             if (symbol != '') {
-                this.setState({selected: this.props.symbolToStock[symbol]});
+                this.setState({selected: this.state.index[symbol]});
             }
 
             var newQuery = $('#stock-search input').val();
@@ -127,10 +128,9 @@
     var StockList = React.createClass({
         render: function() {
             var that = this;
-            var text = "Search over " + this.props.stocks.length + " stocks..."
             return <div id="left-nav">
                     <div id='stock-search'>
-                        <input type="text" className={"form-control"} placeholder={text} onKeyUp={this.props.handleKeyUp} />
+                        <input type="text" className={"form-control"} placeholder={"Search NASDAQ..."} onKeyUp={this.props.handleKeyUp} />
                     </div>
                     <div id='stock-list'>
                         {this.props.stocks.map(function (s) {
@@ -171,12 +171,6 @@
         });
     }
 
-    $.get('/stock_list', function (stocks) {
-        var symbolToStock = {}
-        for (var i = 0; i < stocks.length; i++) {
-            symbolToStock[stocks[i].symbol] = stocks[i];
-        }
-        ReactDOM.render(<App origStocks={stocks} symbolToStock={symbolToStock} />, document.getElementById('app'));
-    });
+    ReactDOM.render(<App />, document.getElementById('app'));
 })()
 

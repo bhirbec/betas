@@ -38,8 +38,21 @@ def home():
 @app.route('/stock_list')
 @storage
 def stock_list(store):
+    q = request.args.get('q')
+    limit = request.args.get('l') or 25
+
     stocks = store.get_json('/stock/' + NASDAQ)
-    output = sorted(stocks, key=lambda s: s['name'])
+    stocks = sorted(stocks, key=lambda s: s['name'])
+
+    output = []
+    count = 0
+    for s in stocks:
+        if not q or q in s['name'].lower():
+            output.append(s)
+            count += 1
+            if count >= limit:
+                break
+
     return jsonify(output)
 
 
