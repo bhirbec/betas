@@ -100,8 +100,13 @@
         },
 
         update: function(stock, state) {
+            var name = this.props.stock.name;
             $.get('/stock_betas/' + stock.symbol, state, function (data) {
-                drawGoogleChart(stock, data);
+                if (data.length == 0) {
+                    alert('No data ;_;')
+                } else {
+                    lineChart(data.dates, data.betas)
+                }
             });
         },
 
@@ -139,40 +144,39 @@
         }
     });
 
-    function drawGoogleChart(stock, rows) {
-        var data = new google.visualization.DataTable();
-        data.addColumn('date', 'Time');
-        data.addColumn('number', 'Beta (30 days)');
-
-        for (var i = 0; i < rows.length; i++) {
-            var parts = rows[i][0].split('-')
-            rows[i][0] = new Date(parts[0], parts[1], parts[2])
-        }
-
-        data.addRows(rows);
-
-        var options = {
-            chart: {
-              title: 'Beta Over Time - ' + stock.name,
+    function lineChart(dates, betas) {
+        var chart = c3.generate({
+            bindto: '#chart',
+            data: {
+                x: 'x',
+                columns: [dates, betas]
             },
-            width: $('#result').width() - 50,
-            height: 400
-        };
-
-        var chart = new google.charts.Line(document.getElementById('chart'));
-        chart.draw(data, options);
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: {
+                        format: '%Y-%m-%d',
+                        count: 10,
+                    }
+                }
+            },
+            grid: {
+                y: {
+                    show: true
+                }
+            },
+            point: {
+                show: false
+            }
+        });
     }
 
-    google.charts.load('current', {'packages':['line']});
-
-    google.charts.setOnLoadCallback(function() {
-        $.get('/stock_list', function (stocks) {
-            var symbolToStock = {}
-            for (var i = 0; i < stocks.length; i++) {
-                symbolToStock[stocks[i].symbol] = stocks[i];
-            }
-            ReactDOM.render(<App origStocks={stocks} symbolToStock={symbolToStock} />, document.getElementById('app'));
-        });
+    $.get('/stock_list', function (stocks) {
+        var symbolToStock = {}
+        for (var i = 0; i < stocks.length; i++) {
+            symbolToStock[stocks[i].symbol] = stocks[i];
+        }
+        ReactDOM.render(<App origStocks={stocks} symbolToStock={symbolToStock} />, document.getElementById('app'));
     });
 })()
 

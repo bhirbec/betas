@@ -73,5 +73,15 @@ input {
 }
 
 #chart {
+	height: 350px;
 	padding: 2em 0;
+}
+
+.c3-axis-x g line,
+.c3-axis-x path.domain {
+	display: none;
+}
+
+.c3-ygrids line.c3-ygrid {
+	stroke: #d5d5d5;
 }

@@ -48,18 +48,19 @@ def stock_list(store):
 def stock_betas(store, symbol):
     table = store.get_node('/indicator/' + symbol)
     if table is None:
-        return '[]'
+        return ''
 
-    output = []
     start = request.args.get('start')
     end = request.args.get('end')
 
+    dates, betas = ['x'], ['Betas (30 days)']
     for r in table.read():
         date = r['date']
         if (not start or start <= date) and (not end or date <= end):
-            output.append(list(r))
+            dates.append(r['date'])
+            betas.append(r['beta'])
 
-    return jsonify(output)
+    return jsonify({'dates': dates, 'betas': betas})
 
 
 if __name__ == '__main__':
