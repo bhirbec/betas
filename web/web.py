@@ -1,4 +1,5 @@
 import time
+import os
 from optparse import OptionParser
 
 from flask import jsonify
@@ -10,14 +11,17 @@ from etl.dblib import Storage
 
 
 NASDAQ = '^IXIC'
+PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
+
 
 app = Flask(__name__)
+db_path = os.path.join(PROJECT_DIR, '../db.h5')
 
 
 def storage(f):
     def _f(*args, **kwargs):
         try:
-            store = Storage(options.db_path)
+            store = Storage(db_path)
             return f(store, *args, **kwargs)
         finally:
             store.close()
@@ -58,15 +62,13 @@ def stock_betas(store, symbol):
     return jsonify(output)
 
 
-parser = OptionParser(usage=(
-    'usage: python %prog [options]\n\n'
-    'Start a web server that provides Financial reports.\n'
-))
-
-parser.add_option('--host', dest='host', default='localhost', help='TCP Host (default: localhost)')
-parser.add_option('--port', dest='port', default='8080', help='TCP port (default: 8080)')
-parser.add_option('--db-path', dest='db_path', default='db.h5', help='Path to the PyTables file')
-options, _ = parser.parse_args()
-
 if __name__ == '__main__':
+    parser = OptionParser(usage=(
+        'usage: python %prog [options]\n\n'
+        'Start a web server that provides Financial reports.\n'
+    ))
+
+    parser.add_option('--host', dest='host', default='localhost', help='TCP Host (default: localhost)')
+    parser.add_option('--port', dest='port', default='8080', help='TCP port (default: 8080)')
+    options, _ = parser.parse_args()
     app.run(host=options.host, port=options.port)

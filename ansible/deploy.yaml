@@ -36,7 +36,7 @@
       when: ls_dir.stdout.find('anaconda') == -1
 
     - name: Install eventlet
-      shell: anaconda/bin/pip install eventlet chdir={{project_dir}}
+      shell: anaconda/bin/pip install eventlet gunicorn chdir={{project_dir}}
       when: ls_dir.stdout.find('anaconda') == -1
 
     - name: Copy upstart.conf
