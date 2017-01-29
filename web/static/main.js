@@ -158,6 +158,11 @@
                         format: '%Y-%m-%d',
                         count: 10,
                     }
+                },
+                y: {
+                    tick: {
+                        format: d3.format('.2f'),
+                    }
                 }
             },
             grid: {
