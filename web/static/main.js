@@ -196,6 +196,11 @@
     });
 
     function lineChart(dates, betas) {
+        if (betas.length == 0) {
+            $('#chart').empty().text('No data...')
+            return
+        }
+
         var chart = c3.generate({
             bindto: '#chart',
             data: {

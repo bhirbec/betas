@@ -62,7 +62,7 @@ def stock_betas(store, market, symbol):
     path = '/{0}/indicator/{1}'.format(market, symbol)
     table = store.get_node(path)
     if table is None:
-        return ''
+        return jsonify({'dates': [], 'betas': []})
 
     start = request.args.get('start')
     end = request.args.get('end')
