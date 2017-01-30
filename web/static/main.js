@@ -47,7 +47,7 @@
         },
 
         componentWillReceiveProps: function (nextProps) {
-            this.update('', nextProps.market)
+            this.update($('#stock-search input').val(), nextProps.market)
         },
 
         update: function (q, market) {
