@@ -5,9 +5,17 @@ from datetime import datetime
 from optparse import OptionParser
 from multiprocessing import cpu_count
 
-from loader import NASDAQ, load_data
+from loader import load_data
 from indicator import compute_indicators
 from dblib import Storage, parse_date
+
+
+PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+MARKETS = [
+    (os.path.join(PROJECT_DIR, '../data/nasdaq.csv'), '^IXIC'),
+    (os.path.join(PROJECT_DIR, '../data/nyse.csv'), '^NYA')
+]
 
 
 parser = OptionParser(usage=(
@@ -68,8 +76,8 @@ def main(options):
     try:
         start_time = time.time()
         store = Storage(options.db_path)
-        load_data(store, options)
-        compute_indicators(store, NASDAQ, options.nb_proc)
+        load_data(store, MARKETS, options)
+        compute_indicators(store, MARKETS, options.nb_proc)
         print 'Total work took %s' % (time.time() - start_time)
     finally:
         store.close()

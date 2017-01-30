@@ -9,12 +9,6 @@ import yahoo
 from dblib import parse_date
 
 
-NASDAQ = '^IXIC'
-PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
-NASDAQ_FILE = os.path.join(PROJECT_DIR, '../data/nasdaq.csv')
-MARKET = [(NASDAQ_FILE, NASDAQ)]
-
-
 class StockHistory(IsDescription):
     date    = StringCol(10, pos=1)
     opening = Float64Col(pos=2)
@@ -23,14 +17,14 @@ class StockHistory(IsDescription):
     roi     = Float64Col(pos=5)
 
 
-def load_data(store, options):
-    store.create_dir('history')
+def load_data(store, markets, options):
+    store.create_dir('/history')
 
-    for file_path, market_symbol in MARKET:
+    for file_path, market_symbol in markets:
         print 'Importing %s' % file_path
         stocks = _read_stock_list(file_path)
         n = options.nb_stocks or len(stocks)
-        store.put_json('/stock/' + market_symbol, stocks[:n])
+        store.put_json('/{0}/stocks'.format(market_symbol), stocks[:n])
         if not options.no_download:
             _load_stocks_histories(store, options, market_symbol)
 
@@ -54,21 +48,23 @@ def _read_stock_list(file):
 
 
 def _load_stocks_histories(store, options, market_symbol):
-    stocks = store.get_json('/stock/' + market_symbol)
+    stocks = store.get_json('/{0}/stocks'.format(market_symbol))
     symbols = [market_symbol] + [s['symbol'] for s in stocks]
 
     tasks = []
     for symbol in symbols:
-        start = _get_symbol_max_date(store, symbol) or options.start_date
+        path = '/{0}/history/{1}'.format(market_symbol, symbol)
+        start = _get_symbol_max_date(store, path) or options.start_date
         tasks.append((symbol, start, options.end_date))
 
     for symbol, serie in yahoo.async_downloads(tasks, pool_size=options.nb_greenthreads):
         serie = list(reversed(serie))
-        store.update_table('history', symbol, serie, StockHistory)
+        path = '/{0}/history/{1}'.format(market_symbol, symbol)
+        store.update_table(path, serie, StockHistory)
 
 
-def _get_symbol_max_date(store, symbol):
-    table = store.get_node('/history/' + symbol)
+def _get_symbol_max_date(store, path):
+    table = store.get_node(path)
     if table is None or table.nrows == 0:
         return None
 

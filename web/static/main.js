@@ -3,7 +3,41 @@
     var timeout;
     var query = '';
 
+    var MARKETS = {
+        '^IXIC': 'NASDAQ',
+        '^NYA': 'NYSE',
+    }
+
     var App = React.createClass({
+        getInitialState: function () {
+            return {'market': '^IXIC'}
+        },
+
+        handleClick: function (symbol, e) {
+            this.setState({market: symbol});
+            e.preventDefault();
+        },
+
+        render: function() {
+            return <div id={"app"}>
+                <div id={"header"}>
+                    <a href={"#"}
+                       onClick={this.handleClick.bind(this, '^IXIC')}
+                       className={'^IXIC' == this.state.market ? 'selected' : ''}>
+                       NASDAQ
+                    </a>
+                    <a href={"#"}
+                       onClick={this.handleClick.bind(this, '^NYA')}
+                       className={'^NYA' == this.state.market ? 'selected' : ''}>
+                       NYSE
+                    </a>
+                </div>
+                <Content market={this.state.market}></Content>
+            </div>
+        }
+    });
+
+    var Content = React.createClass({
         getInitialState: function () {
             return {stocks: [], selected: {}, index: {}}
         },
@@ -12,9 +46,15 @@
             this.update('')
         },
 
-        update: function (q) {
+        componentWillReceiveProps: function (nextProps) {
+            this.update('', nextProps.market)
+        },
+
+        update: function (q, market) {
             var that = this;
-            $.get('/stock_list', {q: q}, function (stocks) {
+            var market =  market || this.props.market;
+
+            $.get('/stock_list/' + market, {q: q}, function (stocks) {
                 var index = {}
                 for (var i = 0; i < stocks.length; i++) {
                     index[stocks[i].symbol] = stocks[i];
@@ -56,15 +96,20 @@
         },
 
         render: function() {
-            return <div id={"app"}>
-                <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} handleKeyUp={this.handleKeyUp}/>
-                {'symbol' in this.state.selected ?
-                    <Report stock={this.state.selected} />
-                    :
-                    <div id="result">
-                        <h2>No Match...</h2>
-                    </div>
-                }
+            return <div id={"content"}>
+                <div className={"scroll"}>
+                    <StockList stocks={this.state.stocks}
+                               market={this.props.market}
+                               selected={this.state.selected} handleClick={this.handleClick}
+                               handleKeyUp={this.handleKeyUp} />
+                    {'symbol' in this.state.selected ?
+                        <Report stock={this.state.selected} market={this.props.market} />
+                        :
+                        <div id="result">
+                            <h2>No Match...</h2>
+                        </div>
+                    }
+                </div>
             </div>
         }
     });
@@ -102,7 +147,7 @@
 
         update: function(stock, state) {
             var name = this.props.stock.name;
-            $.get('/stock_betas/' + stock.symbol, state, function (data) {
+            $.get('/stock_betas/' + this.props.market + '/' + stock.symbol, state, function (data) {
                 if (data.length == 0) {
                     alert('No data ;_;')
                 } else {
@@ -129,17 +174,23 @@
         render: function() {
             var that = this;
             return <div id="left-nav">
-                    <div id='stock-search'>
-                        <input type="text" className={"form-control"} placeholder={"Search NASDAQ..."} onKeyUp={this.props.handleKeyUp} />
-                    </div>
-                    <div id='stock-list'>
-                        {this.props.stocks.map(function (s) {
-                            var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
-                            return <a key={s.symbol} href={'#' + s.symbol} onClick={that.props.handleClick.bind(that, s)} className={klass}>
-                                {s.name} ({s.symbol})
-                            </a>
-                        })}
-                    </div>
+                <div id='stock-search'>
+                    <input type="text"
+                           className={"form-control"}
+                           placeholder={"Search " + MARKETS[this.props.market] + "..."}
+                           onKeyUp={this.props.handleKeyUp} />
+                </div>
+                <div id='stock-list'>
+                    {this.props.stocks.map(function (s) {
+                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
+                        return <a key={s.symbol}
+                                  href={'#' + s.symbol}
+                                  onClick={that.props.handleClick.bind(that, s)}
+                                  className={klass}>
+                            {s.name} ({s.symbol})
+                        </a>
+                    })}
+                </div>
             </div>
         }
     });

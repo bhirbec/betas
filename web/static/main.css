@@ -11,13 +11,62 @@ input {
 	font-size: 0.9em;
 }
 
+html, body {
+    height: 100%;
+}
+
+#app:before {
+    content:'';
+    float: left;
+    height: 100%;
+}
+
+#app {
+    height: 100%;
+}
+
+#header {
+	height: 3.5em;
+	line-height: 3.5em;
+	background-color: #333;
+}
+
+#header a {
+	margin: 0 1em;
+}
+
+#header a.selected {
+	border-bottom: 2px solid blue;
+}
+
+#content {
+    position: relative;
+}
+
+#content:after {
+    content:'';
+    display: block;
+    clear: both;
+}
+
+.scroll {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+}
+
+.temp {
+    height: 1000px;
+}
+
 #loading {
 	margin: 1em;
 }
 
 #left-nav {
 	position: fixed;
-	top: 0;
+	top: 3.5em;
 	bottom: 0;
 	width: 20%;
 	border-right: 1px solid #ccc;

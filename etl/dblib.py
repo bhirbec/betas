@@ -31,7 +31,22 @@ class Storage(object):
         path = _norm_node_path(path)
         return self._db.get_node(path) if path in self._db else None
 
-    def create_dir(self, name, force=False):
+    def remove_path(self, path):
+        '''
+        Return the node at the given path. It does do anything if the node
+        does exist.
+
+        Arguments:
+            str path: path of the node
+
+        Returns:
+            None
+        '''
+        path = _norm_node_path(path)
+        if path in self._db:
+            self._db.remove_node(path, recursive=True)
+
+    def create_dir(self, path):
         '''
         Create a directory node at the given path.
 
@@ -42,24 +57,26 @@ class Storage(object):
         Return:
             None
         '''
-        path = '/' + name
-        if path in self._db:
-            if force:
-                self._db.remove_node(path, recursive=True)
-                self._db.create_group("/", name)
-        else:
-            self._db.create_group("/", name)
+        group = '/'
+        for name in path[1:].split('/'):
+            p = group + name
+            if p not in self._db:
+                self._db.create_group(group, name)
+            group = p + '/'
 
-    def update_table(self, group, table, serie, cols):
+    def update_table(self, path, serie, cols):
         if len(serie) == 0:
             return
 
-        table = _norm_node_path(table)
-        tbl = self.get_node('/{0}/{1}'.format(group, table))
-        if tbl is None:
-            tbl = self._db.create_table('/' + group, table, cols)
+        path = _norm_node_path(path)
+        dir_path, basename = os.path.split(path)
+        self.create_dir(dir_path)
 
-        print 'Updating table /%s/%s (%d values)' % (group, table, len(serie))
+        tbl = self.get_node(path)
+        if tbl is None:
+            tbl = self._db.create_table(dir_path, basename, cols)
+
+        print 'Updating table %s (%d values)' % (path, len(serie))
         data = np.rec.array(serie)
         tbl.append(data)
         tbl.flush()

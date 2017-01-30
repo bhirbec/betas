@@ -15,27 +15,31 @@ class StockBeta(IsDescription):
     beta = Float64Col(pos=2)
 
 
-def compute_indicators(store, bench_symbol, nb_proc=2):
-    store.create_dir('indicator', force=True)
+def compute_indicators(store, markets, nb_proc=2):
+    for _, bench_symbol in markets:
+        path = '/{0}/indicator'.format(bench_symbol)
+        store.remove_path(path)
 
-    table = store.get_node('/history/' + bench_symbol)
-    if table is None:
+        pool = Pool(processes=nb_proc)
+        for result in pool.imap_unordered(_work, _iter_tasks(store, bench_symbol)):
+            if result is not None:
+                symbol, betas = result
+                path = '/{0}/indicator/{1}'.format(bench_symbol, symbol)
+                store.update_table(path, betas, StockBeta)
+
+
+def _iter_tasks(store, bench_symbol):
+    path = '/{0}/history/{1}'.format(bench_symbol, bench_symbol)
+    bench = store.get_node(path)
+    if bench is None:
         print 'Error: benchmark table is empty'
         return
 
-    bench = table.read()
-    table.close()
+    bench_data = bench.read()
+    bench.close()
 
-    pool = Pool(processes=nb_proc)
-    for result in pool.imap_unordered(_work, _iter_tasks(store, bench)):
-        if result is not None:
-            symbol, betas = result
-            store.update_table('indicator', symbol, betas, StockBeta)
-
-
-def _iter_tasks(store, bench):
-    for n in store.get_node('/history'):
-        yield n.name, n.read(), bench
+    for n in store.get_node('/{0}/history'.format(bench_symbol)):
+        yield n.name, n.read(), bench_data
         n.close()
 
 

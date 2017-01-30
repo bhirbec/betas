@@ -10,7 +10,6 @@ from flask import request
 from etl.dblib import Storage
 
 
-NASDAQ = '^IXIC'
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -35,13 +34,14 @@ def home():
     return render_template('index.html', ts=time.time())
 
 
-@app.route('/stock_list')
+@app.route('/stock_list/<market>')
 @storage
-def stock_list(store):
+def stock_list(store, market):
     q = request.args.get('q')
     limit = request.args.get('l') or 25
 
-    stocks = store.get_json('/stock/' + NASDAQ)
+    path = '/{0}/stocks'.format(market)
+    stocks = store.get_json(path)
     stocks = sorted(stocks, key=lambda s: s['name'])
 
     output = []
@@ -56,10 +56,11 @@ def stock_list(store):
     return jsonify(output)
 
 
-@app.route('/stock_betas/<symbol>')
+@app.route('/stock_betas/<market>/<symbol>')
 @storage
-def stock_betas(store, symbol):
-    table = store.get_node('/indicator/' + symbol)
+def stock_betas(store, market, symbol):
+    path = '/{0}/indicator/{1}'.format(market, symbol)
+    table = store.get_node(path)
     if table is None:
         return ''
 
