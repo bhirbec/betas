@@ -12,7 +12,7 @@ This project is composed of two scripts:
 - web/web.py: GUI that makes possible to show the rolling betas for each stock. It is
   build with React.js
 
-Demo available here [http://104.197.68.179/](http://104.197.68.179/)
+Demo available here [http://104.197.68.179/](http://104.197.68.179/) (Tested under Google Chrome only)
 
 ## Development Environment
 
@@ -80,7 +80,7 @@ Point your browser (only tested on Google Chrome) at [localhost:8080](http://loc
 Here's the full description of the command:
 
 ```
-$ PYTHONPATH=. python web/web.py -h
+$ PYTHONPATH=. python web/web.py
 Usage: python web.py [options]
 
 Start a web server that provides Financial reports.

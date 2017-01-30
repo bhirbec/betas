@@ -68,7 +68,7 @@ html, body {
 	position: fixed;
 	top: 3.5em;
 	bottom: 0;
-	width: 20%;
+	width: 23em;
 	border-right: 1px solid #ccc;
 	overflow-y: hidden;
 }
