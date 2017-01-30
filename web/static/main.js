@@ -56,7 +56,7 @@
         },
 
         render: function() {
-            return <div>
+            return <div id={"app"}>
                 <StockList stocks={this.state.stocks} selected={this.state.selected} handleClick={this.handleClick} handleKeyUp={this.handleKeyUp}/>
                 {'symbol' in this.state.selected ?
                     <Report stock={this.state.selected} />
@@ -176,6 +176,6 @@
         });
     }
 
-    ReactDOM.render(<App />, document.getElementById('app'));
+    ReactDOM.render(<App />, document.getElementsByTagName('body')[0]);
 })()
 
