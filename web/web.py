@@ -47,7 +47,7 @@ def stock_list(store, market):
     output = []
     count = 0
     for s in stocks:
-        if not q or q in s['name'].lower():
+        if not q or q.lower() in s['name'].lower():
             output.append(s)
             count += 1
             if count >= limit:
