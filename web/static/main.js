@@ -51,27 +51,24 @@
             var market =  market || this.props.market;
 
             $.get('/stock_list/' + market, {q: q}, function (stocks) {
-                var index = {}
-                for (var i = 0; i < stocks.length; i++) {
-                    index[stocks[i].symbol] = stocks[i];
-                }
-                that.setState({stocks: stocks, selected: stocks[0] || {}, index: index});
+                that.setState({stocks: stocks, selected: stocks[0] || {}});
             });
         },
 
         handleKeyUp: function (e) {
             var $n = $(ReactDOM.findDOMNode(this));
             var $selected = $n.find('#stock-list a.selected');
-            var symbol = '';
+            var i = -1;
 
             if (e.keyCode == 40) {
-                symbol = ($selected.next().attr('href') || '').substring(1);
+                i = ($selected.next().attr('href') || '').substring(1);
             } else if (e.keyCode == 38) {
-                symbol = ($selected.prev().attr('href') || '').substring(1);
+                i = ($selected.prev().attr('href') || '').substring(1);
             }
 
-            if (symbol != '') {
-                this.setState({selected: this.state.index[symbol]});
+            var newSelected = this.state.stocks[i];
+            if (newSelected != undefined) {
+                this.setState({selected: newSelected});
             }
 
             var newQuery = $('#stock-search input').val();
@@ -119,10 +116,10 @@
                            onKeyUp={this.props.handleKeyUp} />
                 </div>
                 <div id='stock-list'>
-                    {this.props.stocks.map(function (s) {
+                    {this.props.stocks.map(function (s, i) {
                         var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
                         return <a key={s.symbol}
-                                  href={'#' + s.symbol}
+                                  href={'#' + i}
                                   onClick={that.props.handleClick.bind(that, s)}
                                   className={klass}>
                             {s.name} ({s.symbol})
