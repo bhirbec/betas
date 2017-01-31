@@ -1,7 +1,6 @@
 (function () {
 
     var timeout;
-    var query = '';
 
     var MARKETS = {
         '^IXIC': 'NASDAQ',
@@ -43,44 +42,46 @@
         },
 
         componentWillReceiveProps: function (nextProps) {
-            this.update($('#stock-search input').val(), nextProps.market)
+            this.update(this.state.q, nextProps.market)
         },
 
         update: function (q, market) {
-            var that = this;
             var market =  market || this.props.market;
 
+            var that = this;
             $.get('/stock_list/' + market, {q: q}, function (stocks) {
-                that.setState({stocks: stocks, selected: stocks[0] || {}});
+                that.setState({stocks: stocks, selected: stocks[0] || {}, q: q});
             });
         },
 
-        handleKeyUp: function (e) {
+        handleSearch: function(e) {
+            clearTimeout(timeout);
+
+            var q = e.target.value;
+            if (q == this.state.q) {
+                return
+            }
+
+            var that = this;
+            timeout = setTimeout(function() {that.update(q)}, 200);
+        },
+
+        handleArrow: function (e) {
             var $n = $(ReactDOM.findDOMNode(this));
             var $selected = $n.find('#stock-list a.selected');
-            var i = -1;
 
             if (e.keyCode == 40) {
-                i = ($selected.next().attr('href') || '').substring(1);
+                var i = ($selected.next().attr('href') || '').substring(1);
             } else if (e.keyCode == 38) {
-                i = ($selected.prev().attr('href') || '').substring(1);
-            }
-
-            var newSelected = this.state.stocks[i];
-            if (newSelected != undefined) {
-                this.setState({selected: newSelected});
-            }
-
-            var newQuery = $('#stock-search input').val();
-            if (query == newQuery) {
-                return
+                var i = ($selected.prev().attr('href') || '').substring(1);
             } else {
-                query = newQuery;
+                return
             }
 
-            var that = this
-            clearTimeout(timeout)
-            timeout = setTimeout(function() {that.update(query)}, 200);
+            var selected = this.state.stocks[i];
+            if (selected != undefined) {
+                this.setState({selected: selected});
+            }
         },
 
         handleClick: function(stock, e) {
@@ -97,7 +98,8 @@
                         <StockList stocks={this.state.stocks}
                                    market={this.props.market}
                                    selected={this.state.selected} handleClick={this.handleClick}
-                                   handleKeyUp={this.handleKeyUp} />
+                                   handleSearch={this.handleSearch}
+                                   handleArrow={this.handleArrow} />
                         <Report stock={this.state.selected} market={this.props.market} />
                     </div>
                 </div>
@@ -113,7 +115,8 @@
                     <input type="text"
                            className={"form-control"}
                            placeholder={"Search " + MARKETS[this.props.market] + "..."}
-                           onKeyUp={this.props.handleKeyUp} />
+                           onChange={this.props.handleSearch}
+                           onKeyUp={this.props.handleArrow} />
                 </div>
                 <div id='stock-list'>
                     {this.props.stocks.map(function (s, i) {
