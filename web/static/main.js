@@ -38,10 +38,6 @@
     });
 
     var Content = React.createClass({
-        getInitialState: function () {
-            return {stocks: [], selected: {}, index: {}}
-        },
-
         componentDidMount: function() {
             this.update('')
         },
@@ -96,21 +92,19 @@
         },
 
         render: function() {
-            return <div id={"content"}>
-                <div className={"scroll"}>
-                    <StockList stocks={this.state.stocks}
-                               market={this.props.market}
-                               selected={this.state.selected} handleClick={this.handleClick}
-                               handleKeyUp={this.handleKeyUp} />
-                    {'symbol' in this.state.selected ?
+            if ($.isEmptyObject(this.state)) {
+                return null
+            } else {
+                return <div id={"content"}>
+                    <div className={"scroll"}>
+                        <StockList stocks={this.state.stocks}
+                                   market={this.props.market}
+                                   selected={this.state.selected} handleClick={this.handleClick}
+                                   handleKeyUp={this.handleKeyUp} />
                         <Report stock={this.state.selected} market={this.props.market} />
-                        :
-                        <div id="result">
-                            <h2>No Match...</h2>
-                        </div>
-                    }
+                    </div>
                 </div>
-            </div>
+            }
         }
     });
 
@@ -148,25 +142,27 @@
         update: function(stock, state) {
             var name = this.props.stock.name;
             $.get('/stock_betas/' + this.props.market + '/' + stock.symbol, state, function (data) {
-                if (data.length == 0) {
-                    alert('No data ;_;')
-                } else {
-                    lineChart(data.dates, data.betas)
-                }
+                lineChart(data.dates, data.betas)
             });
         },
 
         render: function () {
-            return <div id="result">
-                <h2>{this.props.stock.name} ({this.props.stock.symbol})</h2>
-                <div id="dates-form">
-                    <label>From: </label>
-                    <input id="start-date" type="text" className={"datepicker"} />
-                    <label>To: </label>
-                    <input id="end-date" type="text" className={"datepicker"} />
+            if ($.isEmptyObject(this.props.stock)) {
+                return <div id="result">
+                    <h2>No Match...</h2>
                 </div>
-                <div id="chart"></div>
-            </div>
+            } else {
+                return <div id="result">
+                    <h2>{this.props.stock.name} ({this.props.stock.symbol})</h2>
+                    <div id="dates-form">
+                        <label>From: </label>
+                        <input id="start-date" type="text" className={"datepicker"} />
+                        <label>To: </label>
+                        <input id="end-date" type="text" className={"datepicker"} />
+                    </div>
+                    <div id="chart"></div>
+                </div>
+            }
         }
     });
 
