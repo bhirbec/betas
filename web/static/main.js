@@ -108,6 +108,31 @@
         }
     });
 
+    var StockList = React.createClass({
+        render: function() {
+            var that = this;
+            return <div id="left-nav">
+                <div id='stock-search'>
+                    <input type="text"
+                           className={"form-control"}
+                           placeholder={"Search " + MARKETS[this.props.market] + "..."}
+                           onKeyUp={this.props.handleKeyUp} />
+                </div>
+                <div id='stock-list'>
+                    {this.props.stocks.map(function (s) {
+                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
+                        return <a key={s.symbol}
+                                  href={'#' + s.symbol}
+                                  onClick={that.props.handleClick.bind(that, s)}
+                                  className={klass}>
+                            {s.name} ({s.symbol})
+                        </a>
+                    })}
+                </div>
+            </div>
+        }
+    });
+
     var Report = React.createClass({
         getInitialState: function () {
             return {start: '2016-01-01', end: ''}
@@ -163,31 +188,6 @@
                     <div id="chart"></div>
                 </div>
             }
-        }
-    });
-
-    var StockList = React.createClass({
-        render: function() {
-            var that = this;
-            return <div id="left-nav">
-                <div id='stock-search'>
-                    <input type="text"
-                           className={"form-control"}
-                           placeholder={"Search " + MARKETS[this.props.market] + "..."}
-                           onKeyUp={this.props.handleKeyUp} />
-                </div>
-                <div id='stock-list'>
-                    {this.props.stocks.map(function (s) {
-                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
-                        return <a key={s.symbol}
-                                  href={'#' + s.symbol}
-                                  onClick={that.props.handleClick.bind(that, s)}
-                                  className={klass}>
-                            {s.name} ({s.symbol})
-                        </a>
-                    })}
-                </div>
-            </div>
         }
     });
 
