@@ -50,7 +50,7 @@
 
             var that = this;
             $.get('/stock_list/' + market, {q: q}, function (stocks) {
-                that.setState({stocks: stocks, selected: stocks[0] || {}, q: q});
+                that.setState({stocks: stocks, selected: 0, q: q});
             });
         },
 
@@ -69,23 +69,23 @@
         handleArrow: function (e) {
             var $n = $(ReactDOM.findDOMNode(this));
             var $selected = $n.find('#stock-list a.selected');
+            var i = -1;
 
             if (e.keyCode == 40) {
-                var i = ($selected.next().attr('href') || '').substring(1);
+                i = ($selected.next().attr('href') || '').substring(1);
             } else if (e.keyCode == 38) {
-                var i = ($selected.prev().attr('href') || '').substring(1);
+                i = ($selected.prev().attr('href') || '').substring(1);
             } else {
                 return
             }
 
-            var selected = this.state.stocks[i];
-            if (selected != undefined) {
-                this.setState({selected: selected});
+            if (i != '') {
+                this.setState({selected: i});
             }
         },
 
-        handleClick: function(stock, e) {
-            this.setState({selected: stock})
+        handleClick: function(i, e) {
+            this.setState({selected: i})
             e.preventDefault();
         },
 
@@ -97,10 +97,11 @@
                     <div className={"scroll"}>
                         <StockList stocks={this.state.stocks}
                                    market={this.props.market}
-                                   selected={this.state.selected} handleClick={this.handleClick}
+                                   selected={this.state.selected}
+                                   handleClick={this.handleClick}
                                    handleSearch={this.handleSearch}
                                    handleArrow={this.handleArrow} />
-                        <Report stock={this.state.selected} market={this.props.market} />
+                        <Report stock={this.state.stocks[this.state.selected] || {}} market={this.props.market} />
                     </div>
                 </div>
             }
@@ -120,10 +121,10 @@
                 </div>
                 <div id='stock-list'>
                     {this.props.stocks.map(function (s, i) {
-                        var klass = s.symbol == that.props.selected.symbol ? 'selected' : '';
+                        var klass = i == that.props.selected ? 'selected' : '';
                         return <a key={s.symbol}
                                   href={'#' + i}
-                                  onClick={that.props.handleClick.bind(that, s)}
+                                  onClick={that.props.handleClick.bind(that, i)}
                                   className={klass}>
                             {s.name} ({s.symbol})
                         </a>
