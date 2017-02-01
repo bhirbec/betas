@@ -11,6 +11,7 @@ input {
 	font-size: 0.9em;
 }
 
+/* http://jsfiddle.net/letalumil/zVzD6/ */
 html, body {
     height: 100%;
 }
@@ -113,18 +114,31 @@ html, body {
 }
 
 #dates-form {
+	text-align: right;
 	margin-top: 3em;
-	margin-bottom: 2em;
+	line-height: 2em;
 }
 
 #dates-form input {
-	margin-left: 0.5em;
-	margin-right: 1em;
+	margin: 0 .5em;
+	line-height: 1em;
+}
+
+#dates-form label {
+	margin: 0;
+}
+
+#dates-form a {
+	text-decoration: none;
+	margin-left: 2em;
+}
+
+#dates-form a.selected {
+	border-bottom: 2px solid lightblue;
 }
 
 #chart {
 	height: 350px;
-	padding: 2em 0;
 }
 
 .c3-axis-x g line,

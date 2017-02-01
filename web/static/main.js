@@ -135,41 +135,9 @@
     });
 
     var Report = React.createClass({
-        getInitialState: function () {
-            return {start: '2016-01-01', end: ''}
-        },
 
         shouldComponentUpdate: function (nextProps, nextState) {
             return this.props.stock.symbol != nextProps.stock.symbol
-        },
-
-        componentDidMount: function () {
-            var that = this;
-            var $n = $(ReactDOM.findDOMNode(this));
-
-            $n.find('.datepicker').datepicker({
-                format: "yyyy-mm-dd",
-                autoclose: true
-            }).on('changeDate', function () {
-                that.setState({
-                    start: $('#start-date').val(),
-                    end: $('#end-date').val(),
-                })
-                that.update(that.props.stock, that.state);
-            })
-
-            this.update(this.props.stock, this.state)
-        },
-
-        componentWillUpdate: function (nextProps, nextState) {
-            this.update(nextProps.stock, nextState)
-        },
-
-        update: function(stock, state) {
-            var name = this.props.stock.name;
-            $.get('/stock_betas/' + this.props.market + '/' + stock.symbol, state, function (data) {
-                lineChart(data.dates, data.betas)
-            });
         },
 
         render: function () {
@@ -180,17 +148,145 @@
             } else {
                 return <div id="result">
                     <h2>{this.props.stock.name} ({this.props.stock.symbol})</h2>
-                    <div id="dates-form">
-                        <label>From: </label>
-                        <input id="start-date" type="text" className={"datepicker"} />
-                        <label>To: </label>
-                        <input id="end-date" type="text" className={"datepicker"} />
-                    </div>
-                    <div id="chart"></div>
+                    <TimeSerieChart url={ '/stock_betas/' + this.props.market + '/' + this.props.stock.symbol } />
                 </div>
             }
         }
     });
+
+    var TimeSerieChart = React.createClass({
+
+        getData: function(url, state) {
+            $.get(url, state, function (data) {
+                lineChart(data.dates, data.betas)
+            });
+        },
+
+        render: function () {
+            return <div>
+                <DateWidget url={this.props.url } getData={ this.getData } />
+                <div id="chart"></div>
+            </div>
+        }
+    })
+
+    var DateWidget = React.createClass({
+        getInitialState: function () {
+            return {
+                start: formatDate(this.dateDelta('1y')),
+                end: formatDate(new Date()),
+            }
+        },
+
+        componentWillReceiveProps: function (newProps) {
+            // reset to initial state when we change stock
+            this.update(newProps.url, this.state)
+        },
+
+        componentDidMount: function () {
+            var that = this;
+            var $n = $(ReactDOM.findDOMNode(this));
+
+            $n.find('.datepicker').datepicker({
+                format: "yyyy-mm-dd",
+                autoclose: true
+            })
+
+            $n.find('#start-date').on('changeDate', function (e) {
+                that.state['start'] = e.target.value
+                that.update(that.props.url, that.state)
+            });
+
+            $n.find('#end-date').on('changeDate', function (e) {
+                that.state['end'] = e.target.value
+                that.update(that.props.url, that.state)
+            });
+
+            this.update(this.props.url, this.state)
+        },
+
+        update: function(url, state) {
+            this.setState(state);
+            this.props.getData(url, state)
+        },
+
+        dateDelta: function (q) {
+            var handlers = {
+                '1w': 7,
+                '1m': 31,
+                '1y': 365,
+                '2y': 2*365,
+                '5y': 5*365,
+            };
+
+            var now = new Date();
+            now.setDate(now.getDate() - handlers[q]);
+            return now
+        },
+
+        handleChange: function (key, e) {
+            var state = {}
+            state[key] = e.target.value
+            this.update(this.props.url, state)
+            e.preventDefault();
+        },
+
+        handleClick: function (q, e) {
+            if (q != 'range') {
+                var start = this.dateDelta(q)
+                var end = new Date()
+
+                var state = {
+                    start: formatDate(start),
+                    end: formatDate(end),
+                    value: q,
+                }
+
+                var $n = $(ReactDOM.findDOMNode(this));
+                $n.find('#start-date').datepicker("setDate", start);
+                $n.find('#end-date').datepicker("setDate", end);
+
+                this.update(this.props.url, state)
+            } else {
+                this.setState({value: 'range'})
+            }
+
+            e.preventDefault()
+        },
+
+        render: function() {
+            var value = this.state.value || '1y'
+
+            return <div id="dates-form">
+                <div style={ {display: value == 'range' ? 'block' : 'none'} }>
+                    <label>From: </label>
+                    <input key={'start'}
+                           id="start-date"
+                           type="text"
+                           className={"datepicker"}
+                           value={this.state.start}
+                           onChange={this.handleChange.bind(this, 'start')} />
+                    <label>To: </label>
+                    <input key={'end'}
+                           id="end-date"
+                           type="text"
+                           className={"datepicker"}
+                           value={this.state.end}
+                           onChange={this.handleChange.bind(this, 'end')} />
+                    <a href="#" onClick={this.handleClick.bind(this, '1y')}>back</a>
+                </div>
+                <div style={ {display: value == 'range' ? 'none' : 'block'} }>
+                    <a href="#" onClick={this.handleClick.bind(this, 'range')} className={selected(value, 'range')}>Date range</a>
+                    <a href="#" onClick={this.handleClick.bind(this, '5y')} className={selected(value, '5y')}>5 Y</a>
+                    <a href="#" onClick={this.handleClick.bind(this, '2y')} className={selected(value, '2y')}>2 Y</a>
+                    <a href="#" onClick={this.handleClick.bind(this, '1y')} className={selected(value, '1y')}>1 Y</a>
+                    <a href="#" onClick={this.handleClick.bind(this, '1m')} className={selected(value, '1m')}>1 M</a>
+                    <a href="#" onClick={this.handleClick.bind(this, '1w')} className={selected(value, '1w')}>1 W</a>
+                </div>
+            </div>
+        }
+    });
+
 
     function lineChart(dates, betas) {
         if (betas.length == 0) {
@@ -227,6 +323,22 @@
                 show: false
             }
         });
+    }
+
+    function formatDate(date) {
+        var day = date.getDate();
+        var month = date.getMonth();
+        var year = date.getFullYear();
+        return year + '-' + leftPad(month+1, '00') + '-' + leftPad(day, '00');
+    }
+
+    function leftPad(str, pad) {
+        str += '';
+        return pad.substring(0, pad.length - str.length) + str
+    }
+
+    function selected(value, selected, attr) {
+        return value == selected ? (attr || 'selected') : ''
     }
 
     ReactDOM.render(<App />, document.getElementsByTagName('body')[0]);
