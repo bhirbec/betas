@@ -178,31 +178,35 @@
             }
         },
 
+        componentDidMount: function () {
+            this.update(this.props.url, this.state)
+        },
+
         componentWillReceiveProps: function (newProps) {
             // reset to initial state when we change stock
             this.update(newProps.url, this.state)
         },
 
-        componentDidMount: function () {
-            var that = this;
+        componentDidUpdate: function (prevProps, prevState) {
+            if (this.state.value != 'range' || prevState.value == 'range') {
+                return
+            }
+
             var $n = $(ReactDOM.findDOMNode(this));
 
-            $n.find('.datepicker').datepicker({
+            $n.find('#start-date').datepicker({
                 format: "yyyy-mm-dd",
-                autoclose: true
-            })
+                autoclose: true,
+                setDate: this.state.start,
+                enableOnReadonly: true,
+            }).on('changeDate', this.handleChange.bind(this, 'start'))
 
-            $n.find('#start-date').on('changeDate', function (e) {
-                that.state['start'] = e.target.value
-                that.update(that.props.url, that.state)
-            });
-
-            $n.find('#end-date').on('changeDate', function (e) {
-                that.state['end'] = e.target.value
-                that.update(that.props.url, that.state)
-            });
-
-            this.update(this.props.url, this.state)
+            $n.find('#end-date').datepicker({
+                format: "yyyy-mm-dd",
+                autoclose: true,
+                setDate: this.state.end,
+                enableOnReadonly: true,
+            }).on('changeDate', this.handleChange.bind(this, 'end'))
         },
 
         update: function(url, state) {
@@ -225,7 +229,7 @@
         },
 
         handleChange: function (key, e) {
-            var state = {}
+            var state = $.extend({}, this.state)
             state[key] = e.target.value
             this.update(this.props.url, state)
             e.preventDefault();
@@ -233,20 +237,11 @@
 
         handleClick: function (q, e) {
             if (q != 'range') {
-                var start = this.dateDelta(q)
-                var end = new Date()
-
-                var state = {
-                    start: formatDate(start),
-                    end: formatDate(end),
+                this.update(this.props.url, {
+                    start: formatDate(this.dateDelta(q)),
+                    end: formatDate(new Date()),
                     value: q,
-                }
-
-                var $n = $(ReactDOM.findDOMNode(this));
-                $n.find('#start-date').datepicker("setDate", start);
-                $n.find('#end-date').datepicker("setDate", end);
-
-                this.update(this.props.url, state)
+                })
             } else {
                 this.setState({value: 'range'})
             }
@@ -257,25 +252,26 @@
         render: function() {
             var value = this.state.value || '1y'
 
-            return <div id="dates-form">
-                <div style={ {display: value == 'range' ? 'block' : 'none'} }>
+            if (value == 'range') {
+                return <div id="dates-form">
                     <label>From: </label>
                     <input key={'start'}
                            id="start-date"
                            type="text"
                            className={"datepicker"}
-                           value={this.state.start}
-                           onChange={this.handleChange.bind(this, 'start')} />
+                           data-date={this.state.start}
+                           value={this.state.start} />
                     <label>To: </label>
                     <input key={'end'}
                            id="end-date"
                            type="text"
                            className={"datepicker"}
-                           value={this.state.end}
-                           onChange={this.handleChange.bind(this, 'end')} />
+                           data-date={this.state.end}
+                           value={this.state.end} />
                     <a href="#" onClick={this.handleClick.bind(this, '1y')}>back</a>
                 </div>
-                <div style={ {display: value == 'range' ? 'none' : 'block'} }>
+            } else {
+                return <div id="dates-form">
                     <a href="#" onClick={this.handleClick.bind(this, 'range')} className={selected(value, 'range')}>Date range</a>
                     <a href="#" onClick={this.handleClick.bind(this, '5y')} className={selected(value, '5y')}>5 Y</a>
                     <a href="#" onClick={this.handleClick.bind(this, '2y')} className={selected(value, '2y')}>2 Y</a>
@@ -283,7 +279,8 @@
                     <a href="#" onClick={this.handleClick.bind(this, '1m')} className={selected(value, '1m')}>1 M</a>
                     <a href="#" onClick={this.handleClick.bind(this, '1w')} className={selected(value, '1w')}>1 W</a>
                 </div>
-            </div>
+
+            }
         }
     });
 
