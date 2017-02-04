@@ -13,8 +13,6 @@ WINDOW_SIZE = 30
 class StockBeta(IsDescription):
     date = StringCol(10, pos=1)
     beta = Float64Col(pos=2)
-    beta2 = Float64Col(pos=3)
-    # beta3 = Float64Col(pos=4)
 
 
 def compute_indicators(store, markets, nb_proc=2):
@@ -41,111 +39,65 @@ def _iter_tasks(store, bench_symbol):
     bench.close()
 
     for n in store.get_node('/{0}/history'.format(bench_symbol)):
-        yield n.name, n.read(), bench_data
+        data = n.read()
+        if len(data) >= WINDOW_SIZE:
+            yield n.name, data, bench_data
         n.close()
 
 
 def _work(args):
     try:
-        return _running_betas(*args)
+        start_time = time.time()
+        symbol, stock, bench = args
+        stock_serie, bench_serie = _join_series(stock, bench, 'date')
+        betas = _running_betas(bench_serie, stock_serie, WINDOW_SIZE)
+        print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
+        return symbol, betas
     except Exception as e:
        print traceback.format_exc()
-       return None
+
+    return None
 
 
-def _running_betas(symbol, stock, bench):
-    start_time = time.time()
+def _running_betas(x, y, size):
+    output = []
+    iter_wins = _iter_windows(x, y, 'roi', size)
+    x_win, y_win = iter_wins.next()
 
-    if len(stock) <= WINDOW_SIZE:
-        return symbol, []
-
-    dates, stock_serie, bench_serie = _join_series(stock, bench, 'date', 'roi')
-    betas1 = list(beta_py(bench_serie, stock_serie, WINDOW_SIZE))
-    betas2 = beta_vec(stock_serie, bench_serie)
-    # betas3 = stacked_lstsq(stock_serie, bench_serie)
-
-    print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
-    return symbol, zip(dates[WINDOW_SIZE:], betas1, betas2)
-
-
-def beta_vec(stock_serie, bench_serie):
-    A = np.ones((WINDOW_SIZE, 2), dtype=float64)
-
-    def _lstsq(stock_win, bench_win):
-        A[:,0] = bench_win
-        beta, alpha = np.linalg.lstsq(A, stock_win)[0]
-        return np.array([beta])
-
-    def _cov(stock_win, bench_win):
-        cov = np.cov(stock_win, bench_win)
-        return np.array([cov[0][1] / cov[1][1]])
-
-    def rolling_window(a, window):
-        # from http://www.rigtorp.se/2011/01/01/rolling-statistics-numpy.html
-        shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-        strides = a.strides + (a.strides[-1],)
-        return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
-
-    stock_wins = rolling_window(stock_serie, WINDOW_SIZE)
-    bench_wins = rolling_window(bench_serie, WINDOW_SIZE)
-    vfunc = np.vectorize(_lstsq, signature='(n),(m)->(k)')
-    return vfunc(stock_wins, bench_wins).flatten()
-
-
-def beta_py(x, y, size):
-    x_win = np.array([x[i] for i in xrange(size)])
-    y_win = np.array([y[i] for i in xrange(size)])
-    c = np.cov(x_win, y_win)
-    yield c[0][1] / c[0][0]
-
-    x_sum = sum(x[i] for i in xrange(size))
-    y_sum = sum(y[i] for i in xrange(size))
+    x_sum = np.sum(x_win)
+    y_sum = np.sum(y_win)
     x_mean = x_sum / size
     y_mean = y_sum / size
+    numerator = np.sum( (x_win - x_mean) * (y_win - y_mean) )
+    denominator = np.sum((x_win - x_mean)**2)
+    output.append((x[size]['date'], numerator / denominator))
 
-    n = len(x)
-    for i in xrange(size, n):
-        x_win[i % size] = x[i]
-        y_win[i % size] = y[i]
-
-        x_sum += x[i] - x[i-size]
-        y_sum += y[i] - y[i-size]
+    for i, (x_win, y_win) in enumerate(iter_wins, size):
+        x_sum += x[i]['roi'] - x[i-size]['roi']
+        y_sum += y[i]['roi'] - y[i-size]['roi']
         x_mean = x_sum / size
         y_mean = y_sum / size
         numerator = np.sum( (x_win - x_mean) * (y_win - y_mean) )
         denominator = np.sum((x_win - x_mean)**2)
+        output.append((x[i]['date'], numerator / denominator))
 
-        yield numerator / denominator
-
-
-# http://stackoverflow.com/questions/30442377/how-to-solve-many-overdetermined-systems-of-linear-equations-using-vectorized-co
-def stacked_lstsq(L, b, rcond=1e-10):
-    """
-    Solve L x = b, via SVD least squares cutting of small singular values
-    L is an array of shape (..., M, N) and b of shape (..., M).
-    Returns x of shape (..., N)
-    """
-
-    def rolling_window(a, window):
-        shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-        strides = a.strides + (a.strides[-1],)
-        return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
-
-    L = rolling_window(L, WINDOW_SIZE)
-    b = rolling_window(b, WINDOW_SIZE)
-
-    u, s, v = np.linalg.svd(L, full_matrices=False)
-    s_max = s.max(axis=-1, keepdims=True)
-    s_min = rcond*s_max
-    inv_s = np.zeros_like(s)
-    inv_s[s >= s_min] = 1/s[s>=s_min]
-    x = np.einsum('...ji,...j->...i', v,
-                  inv_s * np.einsum('...ji,...j->...i', u, b.conj()))
-    return np.conj(x, x)
+    return output
 
 
-def _join_series(s1, s2, key, attr):
-    keys, out1, out2 = [], [], []
+def _iter_windows(x, y, attr, size):
+    x_win = np.array([x[i][attr] for i in xrange(size)])
+    y_win = np.array([y[i][attr] for i in xrange(size)])
+    yield x_win, y_win
+
+    n = len(x)
+    for i in xrange(size, n):
+        x_win[i % size] = x[i][attr]
+        y_win[i % size] = y[i][attr]
+        yield x_win, y_win
+
+
+def _join_series(s1, s2, key):
+    out1, out2 = [], []
     s1, s2 = iter(s1), iter(s2)
     row1 = next(s1, None)
     row2 = next(s2, None)
@@ -157,10 +109,9 @@ def _join_series(s1, s2, key, attr):
         elif key1 < key2:
             row1 = next(s1, None)
         else:
-            keys.append(key1)
-            out1.append(row1[attr])
-            out2.append(row2[attr])
+            out1.append(row1)
+            out2.append(row2)
             row2 = next(s2, None)
             row1 = next(s1, None)
 
-    return keys, np.array(out1), np.array(out2)
+    return out1, out2
