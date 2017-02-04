@@ -68,14 +68,15 @@ def stock_betas(store, market, symbol):
     start = request.args.get('start')
     end = request.args.get('end')
 
-    dates, betas = ['x'], ['Betas (30 days)']
+    dates, betas, betas2 = ['x'], ['Betas (30 days)'], ['Beta2']
     for r in table.read():
         date = r['date']
         if (not start or start <= date) and (not end or date <= end):
             dates.append(r['date'])
             betas.append(r['beta'])
+            betas2.append(r['beta2'])
 
-    return jsonify({'dates': dates, 'betas': betas})
+    return jsonify({'dates': dates, 'betas': betas, 'betas2': betas2})
 
 
 if __name__ == '__main__':

@@ -26,11 +26,12 @@ Create Anaconda project:
 
 `$ conda create --name betas`
 
-Install `eventlet` with pip:
+Install `eventlet` and upgrade Numpy:
 
 ```
 $ source activate betas
 $ pip install eventlet
+$ pip install numpy==1.12.0
 ```
 
 ## Running the ETL

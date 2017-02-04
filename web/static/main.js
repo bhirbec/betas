@@ -158,7 +158,7 @@
 
         getData: function(url, state) {
             $.get(url, state, function (data) {
-                lineChart(data.dates, data.betas)
+                lineChart(data.dates, data.betas, data.betas2)
             });
         },
 
@@ -285,7 +285,7 @@
     });
 
 
-    function lineChart(dates, betas) {
+    function lineChart(dates, betas, betas2) {
         if (betas.length == 0) {
             $('#chart').empty().text('No data...')
             return
@@ -295,7 +295,7 @@
             bindto: '#chart',
             data: {
                 x: 'x',
-                columns: [dates, betas]
+                columns: [dates, betas, betas2]
             },
             axis: {
                 x: {
