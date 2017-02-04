@@ -65,15 +65,17 @@ def stock_betas(store, market, symbol):
     if table is None:
         return jsonify({'dates': [], 'betas': []})
 
-    start = request.args.get('start')
-    end = request.args.get('end')
+    start = request.args.get('start', '')
+    end = request.args.get('end', '')
+
+    condition = "('{start}' <= date) & (date <= '{end}')"
+    condition = condition.format(start = start, end = end)
+    stock_data = table.read_where(condition)
 
     dates, betas = ['x'], ['Betas (30 days)']
-    for r in table.read():
-        date = r['date']
-        if (not start or start <= date) and (not end or date <= end):
-            dates.append(r['date'])
-            betas.append(r['beta'])
+    for r in stock_data:
+        dates.append(r['date'])
+        betas.append(r['beta'])
 
     return jsonify({'dates': dates, 'betas': betas})
 
