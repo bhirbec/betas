@@ -8,7 +8,7 @@ from flask import Flask
 from flask import render_template
 from flask import request
 
-from etl.dblib import Storage
+from etl.dblib import Storage, inner_join
 
 
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -67,9 +67,7 @@ def stock_betas(store, market, symbol):
 
     start = request.args.get('start', '')
     end = request.args.get('end', '')
-
-    condition = "('{start}' <= date) & (date <= '{end}')"
-    condition = condition.format(start = start, end = end)
+    condition = _condition(start=start, end=end)
     stock_data = table.read_where(condition)
 
     dates, betas = ['x'], ['Betas (30 days)']
@@ -78,6 +76,33 @@ def stock_betas(store, market, symbol):
         betas.append(r['beta'])
 
     return jsonify({'dates': dates, 'betas': betas})
+
+
+@app.route('/rois/<market>/<symbol>')
+@storage
+def rois(store, market, symbol):
+    bench_table = store.get_node(path = '/{0}/history/{1}'.format(market, market))
+    stock_table = store.get_node(path = '/{0}/history/{1}'.format(market, symbol))
+    if not stock_table or not bench_table:
+        return jsonify({})
+
+    start = request.args.get('start', '')
+    end = request.args.get('end', '')
+    condition = _condition(start=start, end=end)
+
+    stock_data = stock_table.read_where(condition)
+    bench_data = bench_table.read_where(condition)
+    bench_data, stock_data = inner_join(bench_data, stock_data, 'date')
+
+    return jsonify({
+        'stock': ['roi_x'] + [e['roi']*100 for e in stock_data],
+        'bench': ['roi'] + [e['roi']*100 for e in bench_data],
+    })
+
+
+def _condition(start, end):
+    condition = "('{start}' <= date) & (date <= '{end}')"
+    return condition.format(start = start, end = end)
 
 
 if __name__ == '__main__':

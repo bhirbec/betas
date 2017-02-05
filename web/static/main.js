@@ -135,9 +135,17 @@
     });
 
     var Report = React.createClass({
+        getInitialState: function() {
+            return {tab: 'beta'}
+        },
 
         shouldComponentUpdate: function (nextProps, nextState) {
-            return this.props.stock.symbol != nextProps.stock.symbol
+            return this.props.stock.symbol != nextProps.stock.symbol || this.state.tab != nextState.tab;
+        },
+
+        handleTab: function (tab, e) {
+            this.setState({'tab': tab});
+            e.preventDefault();
         },
 
         render: function () {
@@ -148,8 +156,26 @@
             } else {
                 return <div id="result">
                     <h2>{this.props.stock.name} ({this.props.stock.symbol})</h2>
-                    <TimeSerieChart url={ '/stock_betas/' + this.props.market + '/' + this.props.stock.symbol } />
+                    <ul className={"nav nav-tabs"}>
+                        <li className={this.state.tab == 'beta' ? 'active': ''}>
+                            <a href="#" onClick={this.handleTab.bind(this, 'beta')}>Betas</a>
+                        </li>
+                        <li className={this.state.tab == 'roi' ? 'active': ''}>
+                            <a href="#" onClick={this.handleTab.bind(this, 'roi')}>ROI</a>
+                        </li>
+                    </ul>
+                    {this.content()}
                 </div>
+            }
+        },
+
+        content: function () {
+            if (this.state.tab == 'beta') {
+                return <TimeSerieChart url={ '/stock_betas/' + this.props.market + '/' + this.props.stock.symbol } />
+            } else {
+                return <ScatterChart url={ '/rois/' + this.props.market + '/' + this.props.stock.symbol }
+                                     stockName={this.props.stock.name}
+                                     marketName={MARKETS[this.props.market]} />
             }
         }
     });
@@ -157,8 +183,63 @@
     var TimeSerieChart = React.createClass({
 
         getData: function(url, state) {
+            var that = this;
             $.get(url, state, function (data) {
-                lineChart(data.dates, data.betas)
+                that.lineChart(data.dates, data.betas)
+            });
+        },
+
+        render: function () {
+            return <div>
+                <DateWidget url={this.props.url} getData={ this.getData } />
+                <div id="chart"></div>
+            </div>
+        },
+
+        lineChart: function (dates, betas) {
+            if (betas.length == 0) {
+                $('#chart').empty().text('No data...')
+                return
+            }
+
+            var chart = c3.generate({
+                bindto: '#chart',
+                data: {
+                    x: 'x',
+                    columns: [dates, betas]
+                },
+                axis: {
+                    x: {
+                        type: 'timeseries',
+                        tick: {
+                            format: '%Y-%m-%d',
+                            count: 10,
+                        }
+                    },
+                    y: {
+                        tick: {
+                            format: d3.format('.2f'),
+                        }
+                    }
+                },
+                grid: {
+                    y: {
+                        show: true
+                    }
+                },
+                point: {
+                    show: false
+                }
+            });
+        }
+    });
+
+    var ScatterChart = React.createClass({
+
+        getData: function(url, state) {
+            var that = this;
+            $.get(url, state, function (data) {
+                that.renderChart(data.bench, data.stock)
             });
         },
 
@@ -167,6 +248,28 @@
                 <DateWidget url={this.props.url } getData={ this.getData } />
                 <div id="chart"></div>
             </div>
+        },
+
+        renderChart: function (bench, stock) {
+            var chart = c3.generate({
+                bindto: '#chart',
+                data: {
+                    xs: {roi: 'roi_x'},
+                    columns: [bench, stock],
+                    type: 'scatter'
+                },
+                axis: {
+                    x: {
+                        label: this.props.stockName,
+                        tick: {
+                            fit: false
+                        }
+                    },
+                    y: {
+                        label: this.props.marketName
+                    }
+                }
+            });
         }
     })
 
@@ -283,44 +386,6 @@
             }
         }
     });
-
-
-    function lineChart(dates, betas) {
-        if (betas.length == 0) {
-            $('#chart').empty().text('No data...')
-            return
-        }
-
-        var chart = c3.generate({
-            bindto: '#chart',
-            data: {
-                x: 'x',
-                columns: [dates, betas]
-            },
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {
-                        format: '%Y-%m-%d',
-                        count: 10,
-                    }
-                },
-                y: {
-                    tick: {
-                        format: d3.format('.2f'),
-                    }
-                }
-            },
-            grid: {
-                y: {
-                    show: true
-                }
-            },
-            point: {
-                show: false
-            }
-        });
-    }
 
     function formatDate(date) {
         var day = date.getDate();

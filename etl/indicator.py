@@ -6,6 +6,8 @@ import numpy as np
 from numpy import float64
 from tables import IsDescription, StringCol, Float64Col
 
+from dblib import inner_join
+
 
 WINDOW_SIZE = 30
 
@@ -49,7 +51,7 @@ def _work(args):
     try:
         start_time = time.time()
         symbol, stock, bench = args
-        stock_serie, bench_serie = _join_series(stock, bench, 'date')
+        stock_serie, bench_serie = inner_join(stock, bench, 'date')
         betas = _running_betas(bench_serie, stock_serie, WINDOW_SIZE)
         print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
         return symbol, betas
@@ -94,24 +96,3 @@ def _iter_windows(x, y, attr, size):
         x_win[i % size] = x[i][attr]
         y_win[i % size] = y[i][attr]
         yield x_win, y_win
-
-
-def _join_series(s1, s2, key):
-    out1, out2 = [], []
-    s1, s2 = iter(s1), iter(s2)
-    row1 = next(s1, None)
-    row2 = next(s2, None)
-
-    while row1 and row2:
-        key1, key2 = row1[key], row2[key]
-        if key1 > key2:
-            row2 = next(s2, None)
-        elif key1 < key2:
-            row1 = next(s1, None)
-        else:
-            out1.append(row1)
-            out2.append(row2)
-            row2 = next(s2, None)
-            row1 = next(s1, None)
-
-    return out1, out2

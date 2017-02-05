@@ -137,6 +137,39 @@ class Storage(object):
         self._db.close()
 
 
+def inner_join(s1, s2, key):
+    '''
+    Perform INNER JOIN on s1 and s2 using the given key.
+
+    Arguments:
+        list of dicts s1: serie 1
+        list of dicts s1: serie 2
+        str key: key used to perform the inner join
+
+    Return:
+        2-uples (s1, s2)
+    '''
+
+    out1, out2 = [], []
+    s1, s2 = iter(s1), iter(s2)
+    row1 = next(s1, None)
+    row2 = next(s2, None)
+
+    while row1 and row2:
+        key1, key2 = row1[key], row2[key]
+        if key1 > key2:
+            row2 = next(s2, None)
+        elif key1 < key2:
+            row1 = next(s1, None)
+        else:
+            out1.append(row1)
+            out2.append(row2)
+            row2 = next(s2, None)
+            row1 = next(s1, None)
+
+    return out1, out2
+
+
 def parse_date(d):
     try:
         return datetime.strptime(d, '%Y-%m-%d')
