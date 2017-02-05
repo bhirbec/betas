@@ -1,0 +1,2 @@
+# 6am UTC
+0 6 * * * {{project_dir}}/anaconda/bin/python {{project_dir}}/etl/etl.py > /var/log/etl/etl.py  --db-path {{project_dir}}/db.h5 2>&1

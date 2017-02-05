@@ -43,6 +43,18 @@
       template: src=upstart.conf dest=/etc/init/web.conf
       sudo: yes
 
+    - name: Copy crontab.conf
+      template: src=crontab dest=/var/spool/cron/crontabs/bhirbec mode=0600
+      sudo: yes
+
+    - name: Creates directory
+      file: path=/var/log/etl state=directory owner=bhirbec mode=0775
+      sudo: yes
+
+    - name: Restart cron
+      command: service cron restart
+      sudo: yes
+
     # TODO: restart doesn't work if the instance if not started yet
     # TODO: need to load database first
     - name: Restart Web
