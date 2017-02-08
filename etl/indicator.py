@@ -52,9 +52,15 @@ def _work(args):
         start_time = time.time()
         symbol, stock, bench = args
         stock_serie, bench_serie = inner_join(stock, bench, 'date')
+
+        # TODO: do we need float64?
+        dates = [b['date'] for b in bench_serie][WINDOW_SIZE:]
+        stock_serie = np.array([v['roi'] for v in stock_serie], dtype=float64)
+        bench_serie = np.array([v['roi'] for v in bench_serie], dtype=float64)
         betas = _running_betas(bench_serie, stock_serie, WINDOW_SIZE)
         print 'Computing Betas for %s took %s' % (symbol, (time.time() - start_time))
-        return symbol, betas
+        # TODO: let's try to remove that zip
+        return symbol, zip(dates, betas)
     except Exception as e:
        print traceback.format_exc()
 
@@ -62,37 +68,24 @@ def _work(args):
 
 
 def _running_betas(x, y, size):
-    output = []
-    iter_wins = _iter_windows(x, y, 'roi', size)
-    x_win, y_win = iter_wins.next()
+    x_wins = _rolling_window(x, size)
+    x_means = _rolling_means(x, size)[size-1:, None]
 
-    x_sum = np.sum(x_win)
-    y_sum = np.sum(y_win)
-    x_mean = x_sum / size
-    y_mean = y_sum / size
-    numerator = np.sum( (x_win - x_mean) * (y_win - y_mean) )
-    denominator = np.sum((x_win - x_mean)**2)
-    output.append((x[size]['date'], numerator / denominator))
+    y_wins = _rolling_window(y, size)
+    y_means = _rolling_means(y, size)[size-1:, None]
 
-    for i, (x_win, y_win) in enumerate(iter_wins, size):
-        x_sum += x[i]['roi'] - x[i-size]['roi']
-        y_sum += y[i]['roi'] - y[i-size]['roi']
-        x_mean = x_sum / size
-        y_mean = y_sum / size
-        numerator = np.sum( (x_win - x_mean) * (y_win - y_mean) )
-        denominator = np.sum((x_win - x_mean)**2)
-        output.append((x[i]['date'], numerator / denominator))
-
-    return output
+    numerator = np.sum((x_wins - x_means) * (y_wins - y_means), axis=1)
+    denominator = np.sum((x_wins - x_means)**2, axis=1)
+    return numerator / denominator
 
 
-def _iter_windows(x, y, attr, size):
-    x_win = np.array([x[i][attr] for i in xrange(size)])
-    y_win = np.array([y[i][attr] for i in xrange(size)])
-    yield x_win, y_win
+def _rolling_window(a, size):
+    shape = a.shape[:-1] + (a.shape[-1] - size + 1, size)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 
-    n = len(x)
-    for i in xrange(size, n):
-        x_win[i % size] = x[i][attr]
-        y_win[i % size] = y[i][attr]
-        yield x_win, y_win
+
+def _rolling_means(x, size):
+    cumul = np.cumsum(x)
+    cumul[size:] = cumul[size:] - cumul[:-size]
+    return cumul / size
