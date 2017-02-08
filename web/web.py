@@ -63,7 +63,7 @@ def stock_betas(store, market, symbol):
     path = '/{0}/indicator/{1}'.format(market, symbol)
     table = store.get_node(path)
     if table is None:
-        return jsonify({'dates': [], 'betas': []})
+        return jsonify([])
 
     start = request.args.get('start', '')
     end = request.args.get('end', '')
@@ -75,7 +75,7 @@ def stock_betas(store, market, symbol):
         dates.append(r['date'])
         betas.append(r['beta'])
 
-    return jsonify({'dates': dates, 'betas': betas})
+    return jsonify([dates, betas])
 
 
 @app.route('/rois/<market>/<symbol>')
